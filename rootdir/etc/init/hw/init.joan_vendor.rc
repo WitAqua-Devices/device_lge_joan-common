@@ -1,0 +1,9 @@
+# joan_dcm_jp vendor init rc
+
+on post-fs-data
+
+# NFC: create data/nfc for nv storage
+    mkdir /data/vendor/nfc 0770 nfc nfc
+    # FeliCa: create persist-lg/felica for saving FeliCa calibration
+    mkdir /mnt/vendor/persist-lg/felica 0771 nfc system
+    mkdir /mnt/vendor/persist-lg/nfclock 0771 vendor_nfclock vendor_nfclock
