@@ -14,12 +14,16 @@ cc_library_shared {
         "audiotrack_shim.cpp",
         "memoryheap_shim.cpp",
         "mtvmedia_shim.cpp",
+        "nuplayer_shim.cpp",
     ],
     shared_libs: [
         "libaudioclient",
         "libbinder",
         "libcutils",
+        "libdatasource",
         "liblog",
+        "libmedia",
+        "libmediaplayerservice",
         "libutils",
     ],
     // AttributionSourceState, which replaced the uid/pid pair the old
@@ -27,10 +31,12 @@ cc_library_shared {
     static_libs: [
         "framework-permission-aidl-cpp",
     ],
-    // AudioTrack.h pulls in media/Modulo.h, which libaudioclient does not
-    // re-export.
     header_libs: [
+        // AudioTrack.h pulls in media/Modulo.h, which libaudioclient does not
+        // re-export.
         "libmedia_headers",
+        // NuPlayerDriver is not part of libmediaplayerservice's exported set.
+        "libstagefright_nuplayer_headers",
     ],
     // Only the 32-bit blob uses this.
     compile_multilib: "32",

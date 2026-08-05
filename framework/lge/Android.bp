@@ -8,8 +8,9 @@
 // live here instead and go on the boot classpath next to it. Same idea as
 // hardware/oneplus/oneplus-fwk.
 //
-// Only what the apps actually call is implemented - see framework/lge/README
-// for how the surface was derived.
+// Only what the apps actually call is implemented: the surface comes from
+// diffing the classes their smali references against the boot classpath this
+// builds, so anything in here is something a shipped app would have died on.
 java_library {
     name: "com.lge",
     installable: true,

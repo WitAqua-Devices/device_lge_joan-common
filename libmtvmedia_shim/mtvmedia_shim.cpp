@@ -12,13 +12,23 @@ namespace android {
 /*
  * The android 9 DataSourceBase, recreated so libmtv_servicejp.lge.so - which
  * subclasses it to feed the transport stream into the media framework - still
- * links. Only two symbols are actually referenced: the out-of-line getSize()
- * and, because getSize() is the key function, the vtable that comes with it.
+ * links. The class is still in the framework; what is gone is the out-of-line
+ * getSize(), which is now inline, and with it the vtable that used to be
+ * emitted alongside it. Those two symbols are what the blob is missing.
  *
- * The declaration has to keep the original virtual order so the base subobject
- * a stock derived class builds still lines up. Nothing in the current framework
- * consumes a DataSourceBase, so this exists to satisfy the linker rather than
- * to be called.
+ * The virtual order is android 9's, not the current one, because it is a base
+ * subobject the blob builds: DMBDataSource's vtable is baked into the blob with
+ * these slot numbers. Two things moved since:
+ *
+ *   - getAvailableSize() was added after close(), so android 9 has 8 slots here
+ *     and the current header has 9
+ *   - getUri(char*, size_t) is concrete in android 9, not pure virtual
+ *
+ * Getting that wrong would put the destructor pair where the framework looks
+ * for getAvailableSize(). It is not reachable today - the blob keeps these two
+ * symbols undefined but no relocation in it points at either, so the linker
+ * never resolves them - but a derived class that is handed to the framework is
+ * exactly the shape of bug that stays quiet until it is not.
  */
 class DataSourceBase {
 public:
@@ -35,10 +45,9 @@ public:
     virtual int initCheck() const = 0;
     virtual ssize_t readAt(off64_t offset, void* data, size_t size) = 0;
     virtual int getSize(off64_t* size);
-    virtual bool getUri(char* uriString, size_t bufferSize) = 0;
+    virtual bool getUri(char* /*uriString*/, size_t /*bufferSize*/) { return false; }
     virtual uint32_t flags() { return 0; }
     virtual void close() {}
-    virtual int getAvailableSize(off64_t /*offset*/, off64_t* /*size*/) { return -EINVAL; }
 
 protected:
     virtual ~DataSourceBase() {}

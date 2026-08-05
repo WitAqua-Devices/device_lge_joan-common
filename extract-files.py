@@ -79,11 +79,31 @@ blob_fixups: blob_fixups_user_type = {
     # rewrites the one undefined symbol that reaches it. Same length, so it is a
     # byte-for-byte edit of a single .dynstr entry, and .gnu.hash does not index
     # undefined symbols, so no hash bucket has to follow it.
+    # The playback path has the same shape of problem twice over, and the same
+    # answer: what the blob looks up by name is one constructor, everything
+    # after it goes through a vtable, so the constructor decides the layout.
+    #
+    #   MediaPlayerBase gained setDataSource(const String8&) at slot 13, so the
+    #   android 9 slot numbers this drives NuPlayerDriver with are all one
+    #   short from setVideoSurfaceTexture on - prepareAsync calls prepare,
+    #   start calls prepareAsync, and setAudioSink calls releaseDrm, which is
+    #   why the blob's audio output never reached the player.
+    #
+    #   Its AudioSink is on the other side of the same break: the framework
+    #   calls the blob's object, and setPlayerIId() was inserted after open().
+    #   That one is bridged inside the shim rather than renamed, because the
+    #   vtable being called is the blob's own.
+    #
+    # libmtvmedia_shim/nuplayer_shim.cpp has both, built against vtables
+    # decoded out of the stock libmediaplayerservice.so rather than guessed.
     'system/lib/libmtv_servicejp.lge.so': blob_fixup()
         .replace_needed('libmediaextractor.so', 'libmtvmedia_shim.so')
         .binary_regex_replace(
             rb'_ZN7android14MemoryHeapBaseC1EjjPKc',
-            b'_ZN7android14LegacyHeapBaseC1EjjPKc'),
+            b'_ZN7android14LegacyHeapBaseC1EjjPKc')
+        .binary_regex_replace(
+            rb'_ZN7android14NuPlayerDriverC1Ei',
+            b'_ZN7android14LegacyNuDriverC1Ei'),
     # Same for the shared library declaration: the jar moved to /system, and the
     # path in here is what decides which linker namespace the app gets when it
     # loads the jar's JNI - product-clns cannot see libcutils.
