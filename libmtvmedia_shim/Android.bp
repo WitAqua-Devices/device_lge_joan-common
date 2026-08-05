@@ -5,18 +5,20 @@
 
 // What libmtv_servicejp.lge.so wants from the media framework and no longer
 // finds there: libmediaextractor's DataSourceBase, the MIME types LG added to
-// libstagefright_foundation, and the android 9 AudioTrack constructor. The
-// libmediaextractor NEEDED entry is rewritten to point at this in
-// extract-files.py.
+// libstagefright_foundation, the android 9 AudioTrack constructor, and a
+// MemoryHeapBase laid out the way it was in android 9. The libmediaextractor
+// NEEDED entry is rewritten to point at this in extract-files.py.
 cc_library_shared {
     name: "libmtvmedia_shim",
     srcs: [
         "audiotrack_shim.cpp",
+        "memoryheap_shim.cpp",
         "mtvmedia_shim.cpp",
     ],
     shared_libs: [
         "libaudioclient",
         "libbinder",
+        "libcutils",
         "liblog",
         "libutils",
     ],

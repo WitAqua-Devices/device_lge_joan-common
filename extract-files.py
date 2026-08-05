@@ -61,27 +61,29 @@ blob_fixups: blob_fixups_user_type = {
     # constant went with their libstagefright_foundation. libmtvmedia_shim/ has
     # both, under its own name rather than claiming the framework's.
     #
-    # The second fixup is an ABI break that cannot be shimmed. android::
-    # MemoryHeapBase lost a virtual base since android 9, so its vtable now
-    # carries three metadata words where it used to carry four:
+    # The second fixup is the CAS path. android::MemoryHeapBase lost a virtual
+    # base since android 9, so its vtable carries one metadata word less and the
+    # upcasts this was built with - inlined, with the displacement baked in -
+    # read the wrong words:
     #
-    #   android 9:  [vbase 0x30][vbase 0x20][offset-to-top][RTTI] vptr=+16
-    #   current:    [vbase 0x2c][offset-to-top][RTTI]             vptr=+12
+    #              android 9                          current
+    #   vptr-16    vbase offset, RefBase   (0x30)      (before the vtable)
+    #   vptr-12    vbase offset, IMemoryHeap (0x20)    vbase offset, RefBase
     #
-    # Every sp<MemoryHeapBase> in here reaches RefBase with the offset baked in
-    # at build time - `ldr rN,[vptr,#-16]` - which now reads past the start of
-    # the vtable and adds a relocated pointer to the object, so the first CAS
-    # callback takes lgemtvserver down with SIGSEGV in RefBase::incStrong.
-    # Rewriting the displacement to -12 is the whole fix; the three-instruction
-    # idiom is matched so nothing else with a -16 displacement is touched, and
-    # MemoryBase/IMemory/IMemoryHeap kept their layout and use -12 already, so
-    # they never match. 24 sites, one byte each.
+    # so the first CAS callback takes lgemtvserver down with SIGSEGV. The class
+    # layout is not something a shim can paper over, but the blob only ever
+    # looks up the constructor by name - the rest goes through the vtable of
+    # whatever that constructor built - so pointing it at a MemoryHeapBase that
+    # still has the virtual base makes all of it line up again. That class is
+    # android::LegacyHeapBase in libmtvmedia_shim/memoryheap_shim.cpp, and this
+    # rewrites the one undefined symbol that reaches it. Same length, so it is a
+    # byte-for-byte edit of a single .dynstr entry, and .gnu.hash does not index
+    # undefined symbols, so no hash bucket has to follow it.
     'system/lib/libmtv_servicejp.lge.so': blob_fixup()
         .replace_needed('libmediaextractor.so', 'libmtvmedia_shim.so')
         .binary_regex_replace(
-            rb'(?s)([\x50-\x5f]\xf8)\x10'
-            rb'([\x0c\x1c\x2c\x3c\x4c\x5c\x6c\x7c\x8c\x9c\xac\xbc\xcc\xdc\xec\xfc])(.\x44)',
-            b'\\g<1>' + b'\x0c' + b'\\g<2>\\g<3>'),
+            rb'_ZN7android14MemoryHeapBaseC1EjjPKc',
+            b'_ZN7android14LegacyHeapBaseC1EjjPKc'),
     # Same for the shared library declaration: the jar moved to /system, and the
     # path in here is what decides which linker namespace the app gets when it
     # loads the jar's JNI - product-clns cannot see libcutils.
