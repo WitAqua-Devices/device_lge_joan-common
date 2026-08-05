@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: 2026 The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+
+     A gear on the adaptive icon's 108x108 canvas: eight teeth around a hollow
+     hub, drawn as one path so the hub reads as a hole through the even-odd
+     rule rather than needing a second layer.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#ECEFF1"
+        android:fillType="evenOdd"
+        android:pathData="M83.59,49.07 L83.59,58.93 L75.88,61.09 L74.48,64.46 L78.41,71.44 L71.44,78.41 L64.46,74.48 L61.09,75.88 L58.93,83.59 L49.07,83.59 L46.91,75.88 L43.54,74.48 L36.56,78.41 L29.59,71.44 L33.52,64.46 L32.12,61.09 L24.41,58.93 L24.41,49.07 L32.12,46.91 L33.52,43.54 L29.59,36.56 L36.56,29.59 L43.54,33.52 L46.91,32.12 L49.07,24.41 L58.93,24.41 L61.09,32.12 L64.46,33.52 L71.44,29.59 L78.41,36.56 L74.48,43.54 L75.88,46.91 Z M54,43.5 a10.5,10.5 0 1,0 0.01,0 Z" />
+</vector>

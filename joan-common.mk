@@ -393,6 +393,11 @@ PRODUCT_PACKAGES += \
 PRODUCT_BOOT_JARS += \
     com.lge
 
+# Launcher entry for LG's hidden menu, which ships without one - see
+# hiddenmenu/. HiddenMenu.apk itself comes from the vendor blobs.
+PRODUCT_PACKAGES += \
+    HiddenMenuShortcut
+
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/qmi_fw.conf:$(TARGET_COPY_OUT_VENDOR)/etc/qmi_fw.conf
 

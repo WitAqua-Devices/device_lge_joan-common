@@ -653,15 +653,13 @@ vendor/lib64/vendor.qti.hardware.fm@1.0.so;MODULE_SUFFIX=_vendor|96718f3fe172181
 # Full-seg TV (ISDB-T) - from L-01K - joan_dcm_jp-user 9 PKQ1.190414.001 20072184679ed release-keys
 # LGV35 ships these byte for byte, so the japanese SKUs share one copy here.
 # The stack is app -> libmtv_jnijp (JNI) -> lgemtvserver -> the mtv HIDL HAL ->
-# /dev/broadcast_isdbt. Everything but dmb_conf.xml goes on system rather than
-# product: the product linker namespace exposes only the public libraries, and
-# the JNI needs libcutils, libbinder, libgui and friends. Stock got away with
-# product because android 9 did not isolate it.
 # /dev/broadcast_isdbt, so all four layers have to come across together.
-# lgemtvserver and the library it dlopens go on system, not product: the
-# product linker namespace cannot see libutils/libbinder and the binary dies
-# with CANNOT LINK EXECUTABLE before it does anything. Its init script keeps
-# coming from the dump and has the path rewritten by a fixup.
+# Everything but dmb_conf.xml goes on system rather than product: the product
+# linker namespace exposes only the public libraries, so lgemtvserver dies with
+# CANNOT LINK EXECUTABLE before it does anything and the JNI cannot reach
+# libcutils, libbinder or libgui. Stock got away with product because android 9
+# did not isolate it. The init script keeps coming from the dump and has the
+# path rewritten by a fixup.
 product/bin/lgemtvserver:system/bin/lgemtvserver;DISABLE_DEPS|086eb7e046b60db80330ded97e8075cca806e611
 product/etc/dmb_conf.xml|40b9caa8dda3a66bf8ea78c73e5719e35a5d40df
 product/etc/permissions/com.lge.broadcast.jfullseg.xml:system/etc/permissions/com.lge.broadcast.jfullseg.xml|42116c24a70bc7ba82cc759ef5176d8af6e8b5d5
@@ -812,6 +810,20 @@ vendor/lib64/libtinyxml2_1.so|70942325afdd14eedcf11b3fbbfbc3d98f42f8dc
 
 # Graphics (Vulkan) - from cheeseburger - OnePlus5-user 10 QKQ1.191014.012 2010292059 release-keys
 vendor/lib64/hw/vulkan.msm8998.so|d9c347b5fcd1c821c4b1d958a82f1b992257f127
+
+# Hidden menu - from L-01K - joan_dcm_jp-user 9 PKQ1.190414.001 20072184679ed release-keys
+# LG's factory menu. On stock it has no launcher entry and is reached by
+# dialling a service code; hiddenmenu/ adds the icon, and declares the
+# com.lge.permission.LGHIDDEN that guards every component in here - nothing
+# else in the image defines it, which would leave the whole app unreachable.
+#
+# It runs as android.uid.system, so it has to be re-signed with the platform
+# key, which android_app_import does. It stays a plain app rather than a
+# priv-app, the way LG shipped it: the permissions it asks for are all
+# signature level, and priv-app would pull in a privapp-permissions list to
+# get wrong. The com.lge.* APIs it calls that LG kept in their framework.jar
+# are in framework/lge/ - com.lge.os.Build and the AT command client.
+product/app/HiddenMenu/HiddenMenu.apk:system/app/HiddenMenu/HiddenMenu.apk|eed9f0dea1524fe08a97f893eb5a2765d7bbb12c
 
 # Hotword Enrollment
 product/priv-app/HotwordEnrollmentOKGoogleHEXAGON/HotwordEnrollmentOKGoogleHEXAGON.apk

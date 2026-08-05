@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: 2026 The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<resources>
+    <string name="app_name">Hidden Menu</string>
+    <string name="permission_label">Access LG\'s hidden menu</string>
+    <string name="hidden_menu_unavailable">Hidden Menu is not installed on this build</string>
+</resources>

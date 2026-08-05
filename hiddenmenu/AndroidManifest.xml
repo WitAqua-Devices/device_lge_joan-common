@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+     SPDX-FileCopyrightText: 2026 The LineageOS Project
+     SPDX-License-Identifier: Apache-2.0
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="org.lineageos.hiddenmenu">
+
+    <!--
+         com.lge.hiddenmenu guards its whole application with this, and nothing
+         in the image declares it, so every one of its components is currently
+         unreachable - a permission no package defines can never be held.
+
+         Declaring it here at signature level makes it real. HiddenMenu is
+         re-signed with the platform key on import, so it ends up holding the
+         permission it has always asked for, and its own components stay as
+         protected from everything else as LG left them.
+    -->
+    <permission
+        android:name="com.lge.permission.LGHIDDEN"
+        android:label="@string/permission_label"
+        android:protectionLevel="signature" />
+
+    <uses-permission android:name="com.lge.permission.LGHIDDEN" />
+
+    <application
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name">
+
+        <!--
+             LG's entry activity answers MAIN/ALTERNATIVE, not MAIN/LAUNCHER -
+             on stock you reach it by dialling a service code. This is the icon
+             that does the same thing, kept out of the blob so HiddenMenu.apk
+             can stay untouched.
+        -->
+        <activity
+            android:name=".HiddenMenuShortcutActivity"
+            android:excludeFromRecents="true"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:theme="@android:style/Theme.NoDisplay">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

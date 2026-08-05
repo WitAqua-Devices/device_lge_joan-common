@@ -1,0 +1,22 @@
+//
+// SPDX-FileCopyrightText: 2026 The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+// A launcher icon for com.lge.hiddenmenu, which ships without one, plus the
+// declaration of the permission it guards itself with. Has to be signed with
+// the same key as HiddenMenu.apk for that permission to be granted, which
+// android_app_import already does for the blob.
+android_app {
+    name: "HiddenMenuShortcut",
+    srcs: ["src/**/*.java"],
+    resource_dirs: ["res"],
+    manifest: "AndroidManifest.xml",
+
+    certificate: "platform",
+    platform_apis: true,
+
+    optimize: {
+        enabled: false,
+    },
+}
