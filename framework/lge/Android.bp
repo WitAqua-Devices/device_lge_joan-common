@@ -1,0 +1,20 @@
+//
+// SPDX-FileCopyrightText: 2026 The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+// Stubs for the com.lge.* APIs that LG adds by patching framework.jar itself.
+// We cannot ship their framework.jar, so the classes the stock apps reach for
+// live here instead and go on the boot classpath next to it. Same idea as
+// hardware/oneplus/oneplus-fwk.
+//
+// Only what the apps actually call is implemented - see framework/lge/README
+// for how the surface was derived.
+java_library {
+    name: "com.lge",
+    installable: true,
+
+    srcs: [
+        "src/**/*.java",
+    ],
+}

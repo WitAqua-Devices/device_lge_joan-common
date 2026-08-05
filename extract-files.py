@@ -49,6 +49,44 @@ lib_fixups: lib_fixups_user_type = {
 
 
 blob_fixups: blob_fixups_user_type = {
+    # libhidltransport was folded into libhidlbase, and only vendor still gets a
+    # compat stub. lgemtvserver runs off product, where there is none.
+    'product/bin/lgemtvserver': blob_fixup()
+        .remove_needed('libhidltransport.so'),
+    # The binary had to move to /system to reach libutils and libbinder, so the
+    # path baked into the stock init script has to follow it.
+    'product/etc/init/lgemtvserver.rc': blob_fixup()
+        .regex_replace('/product/bin/lgemtvserver', '/system/bin/lgemtvserver'),
+    # libmediaextractor is gone from the media framework, and LG's DMB MIME
+    # constant went with their libstagefright_foundation. libmtvmedia_shim/ has
+    # both, under its own name rather than claiming the framework's.
+    #
+    # The second fixup is an ABI break that cannot be shimmed. android::
+    # MemoryHeapBase lost a virtual base since android 9, so its vtable now
+    # carries three metadata words where it used to carry four:
+    #
+    #   android 9:  [vbase 0x30][vbase 0x20][offset-to-top][RTTI] vptr=+16
+    #   current:    [vbase 0x2c][offset-to-top][RTTI]             vptr=+12
+    #
+    # Every sp<MemoryHeapBase> in here reaches RefBase with the offset baked in
+    # at build time - `ldr rN,[vptr,#-16]` - which now reads past the start of
+    # the vtable and adds a relocated pointer to the object, so the first CAS
+    # callback takes lgemtvserver down with SIGSEGV in RefBase::incStrong.
+    # Rewriting the displacement to -12 is the whole fix; the three-instruction
+    # idiom is matched so nothing else with a -16 displacement is touched, and
+    # MemoryBase/IMemory/IMemoryHeap kept their layout and use -12 already, so
+    # they never match. 24 sites, one byte each.
+    'system/lib/libmtv_servicejp.lge.so': blob_fixup()
+        .replace_needed('libmediaextractor.so', 'libmtvmedia_shim.so')
+        .binary_regex_replace(
+            rb'(?s)([\x50-\x5f]\xf8)\x10'
+            rb'([\x0c\x1c\x2c\x3c\x4c\x5c\x6c\x7c\x8c\x9c\xac\xbc\xcc\xdc\xec\xfc])(.\x44)',
+            b'\\g<1>' + b'\x0c' + b'\\g<2>\\g<3>'),
+    # Same for the shared library declaration: the jar moved to /system, and the
+    # path in here is what decides which linker namespace the app gets when it
+    # loads the jar's JNI - product-clns cannot see libcutils.
+    'system/etc/permissions/com.lge.broadcast.jfullseg.xml': blob_fixup()
+        .regex_replace('/product/framework/', '/system/framework/'),
     'system_ext/lib64/lib-imscamera.so': blob_fixup()
         .add_needed('libgui_shim.so'),
     'system_ext/lib64/lib-imsvideocodec.so': blob_fixup()

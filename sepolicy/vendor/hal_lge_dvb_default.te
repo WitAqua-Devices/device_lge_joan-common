@@ -1,0 +1,18 @@
+type hal_lge_dvb_default_exec, exec_type, vendor_file_type, file_type;
+init_daemon_domain(hal_lge_dvb_default)
+
+hwbinder_use(hal_lge_dvb_default)
+add_hwservice(hal_lge_dvb_default, hal_lge_dvb_hwservice)
+
+# The demux nodes and the QSEECom channel the RMP key ladder runs over.
+allow hal_lge_dvb_default broadcast_isdbt_device:chr_file rw_file_perms;
+allow hal_lge_dvb_default tee_device:chr_file rw_file_perms;
+
+# The transport stream itself comes off the linux DVB demux, and the decoder
+# buffers it hands back are ION allocations.
+allow hal_lge_dvb_default dvb_device:chr_file rw_file_perms;
+allow hal_lge_dvb_default ion_device:chr_file rw_file_perms;
+
+# Same as the mtv HAL: hwbinder_use does not cover reading the readiness
+# property, and without it registration never gets started.
+get_prop(hal_lge_dvb_default, hwservicemanager_prop)

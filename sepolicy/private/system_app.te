@@ -1,1 +1,9 @@
 allow system_app storaged:binder { call };
+
+# com.lge.oneseg shares the system uid and drives the full-seg tuner itself,
+# through /dev/broadcast_isdbt and the mpq demux nodes behind it.
+allow system_app broadcast_isdbt_device:chr_file rw_file_perms;
+
+# com.lge.oneseg reaches the tuner through lgemtvserver's "broadcast.dmb".
+allow system_app mtv_service:service_manager find;
+binder_call(system_app, lgemtvserver)

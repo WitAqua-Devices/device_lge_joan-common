@@ -650,6 +650,57 @@ system_ext/lib64/vendor.qti.hardware.fm@1.0.so|6523b3a08292501589f44ad6928cf5777
 vendor/lib64/hw/vendor.qti.hardware.fm@1.0-impl.so|93d39a2bb30e6be0baa547daa6197e5a7351ca01
 vendor/lib64/vendor.qti.hardware.fm@1.0.so;MODULE_SUFFIX=_vendor|96718f3fe1721815060bc9864d92ac33d040cd74
 
+# Full-seg TV (ISDB-T) - from L-01K - joan_dcm_jp-user 9 PKQ1.190414.001 20072184679ed release-keys
+# LGV35 ships these byte for byte, so the japanese SKUs share one copy here.
+# The stack is app -> libmtv_jnijp (JNI) -> lgemtvserver -> the mtv HIDL HAL ->
+# /dev/broadcast_isdbt. Everything but dmb_conf.xml goes on system rather than
+# product: the product linker namespace exposes only the public libraries, and
+# the JNI needs libcutils, libbinder, libgui and friends. Stock got away with
+# product because android 9 did not isolate it.
+# /dev/broadcast_isdbt, so all four layers have to come across together.
+# lgemtvserver and the library it dlopens go on system, not product: the
+# product linker namespace cannot see libutils/libbinder and the binary dies
+# with CANNOT LINK EXECUTABLE before it does anything. Its init script keeps
+# coming from the dump and has the path rewritten by a fixup.
+product/bin/lgemtvserver:system/bin/lgemtvserver;DISABLE_DEPS|086eb7e046b60db80330ded97e8075cca806e611
+product/etc/dmb_conf.xml|40b9caa8dda3a66bf8ea78c73e5719e35a5d40df
+product/etc/permissions/com.lge.broadcast.jfullseg.xml:system/etc/permissions/com.lge.broadcast.jfullseg.xml|42116c24a70bc7ba82cc759ef5176d8af6e8b5d5
+product/framework/com.lge.broadcast.jfullseg.jar:system/framework/com.lge.broadcast.jfullseg.jar|6bbe83bdfc58000cdae273dc6823cc8aa89f6314
+product/etc/init/lgemtvserver.rc|0eba712bdb5619b5e01f04f0efb049325d1af0fc
+product/lib/libmtv_servicejp.lge.so:system/lib/libmtv_servicejp.lge.so;DISABLE_DEPS|57381b426605615477a43e2bd67e97f107e7c138
+product/priv-app/LGJDMB/LGJDMB.apk:system/priv-app/LGJDMB/LGJDMB.apk|b87d3f5465463dd5f137261468693a330d53e641
+# Written as src:dst because the dump is one non-treble /system - the sources
+# sit at lib/ and lib64/, not under a system/ directory of their own.
+#
+# libmtvextractor is deliberately left out. It is an android 9 MediaExtractor
+# plugin and still links against libmediaextractor.so, which no longer exists -
+# the plugin ABI moved into the media apex years ago, so it could not be loaded
+# even if it were shipped. Playing the transport stream will need something
+# else; getting the app up does not depend on it.
+# libmtv_jnijp.lge.so is NOT taken from the dump either, for a different
+# reason: its binder proxies reserve stack for the android 9 sizeof(Parcel)
+# of 52 bytes, and the current one is 60, so the second Parcel overruns the
+# canary and the process aborts on the first call. The marshalling lives
+# inside the blob, so it is rebuilt from source in libmtv_jnijp/ - which
+# also carries the Bn side, since libmtv_servicejp links against it.
+# vendor.lge.hardware.mtv@1.0.so is NOT taken from the dump. It is generated
+# code built against HIDL internals that were removed after android 9
+# (gBnConstructorMap and the rest of android::hardware::details), so it cannot
+# be loaded here at all. The interface is rebuilt from source instead - see
+# hardware/lge/interfaces/hardware/mtv/1.0/ILgeMtv.hal - and everything else in
+# this section links against that.
+vendor/bin/hw/vendor.lge.hardware.mtv@1.0-service|b5aac6ab5f4c120a9a10506644b49c7d9cc69554
+vendor/etc/init/vendor.lge.hardware.mtv@1.0-service.rc|0c42237bcc7ed45d8835a1b70ec8f6350dc096f7
+# The demux and conditional-access side. libmtv_servicejp.lge.so links against
+# the dvb interface, so lgemtvserver cannot even dlopen it without this. Same
+# story as mtv: vendor.lge.hardware.dvb@1.0.so is rebuilt from source rather
+# than taken from the dump. librmp and libQSEEComAPI are already here as 64-bit
+# for other users; the HAL is 32-bit and needs its own copies.
+vendor/bin/hw/vendor.lge.hardware.dvb@1.0-service|0513d8a47655c5b3b8124d7fd8d745f420a47bea
+vendor/etc/init/vendor.lge.hardware.dvb@1.0-service.rc|e8e57044fc338567cdce8a4ab164c94cff7a858a
+vendor/lib/libQSEEComAPI.so|d23785e976cb83ab6ca144a66f1410cfb709762a
+vendor/lib/librmp.so|5b808bd6031812c307a257968ef1b19f5f10917f
+
 # Gatekeeper
 vendor/lib64/hw/gatekeeper.msm8998.so
 

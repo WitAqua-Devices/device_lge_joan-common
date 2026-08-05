@@ -1,0 +1,37 @@
+//
+// SPDX-FileCopyrightText: 2026 The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+// Replaces the stock libmtv_jnijp.lge.so, which cannot run on a current
+// android: its binder proxies size `Parcel data, reply;` on the stack for the
+// android 9 sizeof(Parcel) of 52 bytes, and today's is 60, so the second one
+// overruns the stack canary and the process aborts on the first call. The
+// marshalling is inside the blob, so no shim can fix it - the interfaces were
+// recovered instead. See joan-rs/DMB_PROTOCOL.md.
+//
+// This carries both halves of the protocol on purpose: lgemtvserver's backend
+// (libmtv_servicejp.lge.so, still the stock blob) links against this library for
+// IDmb, IDmbService and their BnXxx::onTransact.
+cc_library_shared {
+    name: "libmtv_jnijp.lge",
+    srcs: [
+        "IDmb.cpp",
+        "android_broadcast_dmb.cpp",
+    ],
+    shared_libs: [
+        "libandroid_runtime",
+        "libbinder",
+        "libcutils",
+        "libgui",
+        "liblog",
+        "libnativehelper",
+        "libutils",
+    ],
+    header_libs: [
+        "jni_headers",
+    ],
+    // Both the app and lgemtvserver are 32-bit, and mNativeContext is a java
+    // int, so there is nowhere to put a 64-bit pointer anyway.
+    compile_multilib: "32",
+}

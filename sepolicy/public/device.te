@@ -1,0 +1,4 @@
+# The ISDB-T tuner interface created by drivers/broadcast/oneseg. Declared
+# here rather than under sepolicy/vendor because com.lge.oneseg opens it from
+# the system_app domain, and plat policy cannot see vendor types.
+type broadcast_isdbt_device, dev_type;

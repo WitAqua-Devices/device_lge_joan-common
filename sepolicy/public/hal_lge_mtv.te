@@ -1,0 +1,21 @@
+# The full-seg tuner HAL and the daemon in front of it. Declared here rather
+# than under vendor/ because lgemtvserver runs off product and has to be able
+# to name both of them.
+type hal_lge_mtv_default, domain;
+type hal_lge_mtv_hwservice, hwservice_manager_type;
+
+# The demux/CAS HAL behind the same stack. lgemtvserver's dlopened backend
+# talks to it directly, so it is declared alongside the tuner.
+type hal_lge_dvb_default, domain;
+type hal_lge_dvb_hwservice, hwservice_manager_type;
+
+# The linux DVB adapter the mpq demux driver puts up: /dev/dvb0.demux0..3 and
+# the matching dvr nodes. Without a type of their own they land on the generic
+# "device" label and the HAL cannot read the transport stream at all.
+type dvb_device, dev_type;
+
+# coredomain because the binary sits on product: without it the entrypoint from
+# a system_file_type exec is a neverallow violation, vendor domains not being
+# allowed to run anything off /system.
+type lgemtvserver, domain, coredomain;
+type mtv_service, service_manager_type;

@@ -1,0 +1,25 @@
+# lgemtvserver sits between the app's JNI (plain binder, service name
+# "broadcast.dmb" - the process and its logs call themselves MtvService, but
+# that is not the name it registers under) and the tuner HAL (hwbinder).
+type lgemtvserver_exec, exec_type, file_type, system_file_type;
+init_daemon_domain(lgemtvserver)
+
+binder_use(lgemtvserver)
+add_service(lgemtvserver, mtv_service)
+
+hwbinder_use(lgemtvserver)
+allow lgemtvserver hal_lge_mtv_hwservice:hwservice_manager find;
+binder_call(lgemtvserver, hal_lge_mtv_default)
+
+# The client it was handed lives in the app, so the callbacks - scan progress,
+# signal, video and audio events - are binder calls back into system_app.
+binder_call(lgemtvserver, system_app)
+
+# The JP backend it dlopens drives the demux and the CAS key ladder itself.
+allow lgemtvserver hal_lge_dvb_hwservice:hwservice_manager find;
+binder_call(lgemtvserver, hal_lge_dvb_default)
+
+# Same as the HAL side: hwbinder_use does not cover reading the readiness
+# property, and without it lgemtvserver spins on "Waited for
+# hwservicemanager.ready" forever.
+get_prop(lgemtvserver, hwservicemanager_prop)

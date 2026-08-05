@@ -7,3 +7,8 @@ vendor.nxp.nxpese::INxpEse												u:object_r:hal_nfc_hwservice:s0
 
 # RIL
 vendor.qti.hardware.slmadapter::ISlmAdapter								u:object_r:vendor_hal_slmadapter_hwservice:s0
+
+# Full-seg TV
+vendor.lge.hardware.mtv::ILgeMtv						u:object_r:hal_lge_mtv_hwservice:s0
+vendor.lge.hardware.dvb::ILgeDvb						u:object_r:hal_lge_dvb_hwservice:s0
+vendor.lge.hardware.dvb::ILgeRmp						u:object_r:hal_lge_dvb_hwservice:s0

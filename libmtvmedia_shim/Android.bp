@@ -1,0 +1,35 @@
+//
+// SPDX-FileCopyrightText: 2026 The LineageOS Project
+// SPDX-License-Identifier: Apache-2.0
+//
+
+// What libmtv_servicejp.lge.so wants from the media framework and no longer
+// finds there: libmediaextractor's DataSourceBase, the MIME types LG added to
+// libstagefright_foundation, and the android 9 AudioTrack constructor. The
+// libmediaextractor NEEDED entry is rewritten to point at this in
+// extract-files.py.
+cc_library_shared {
+    name: "libmtvmedia_shim",
+    srcs: [
+        "audiotrack_shim.cpp",
+        "mtvmedia_shim.cpp",
+    ],
+    shared_libs: [
+        "libaudioclient",
+        "libbinder",
+        "liblog",
+        "libutils",
+    ],
+    // AttributionSourceState, which replaced the uid/pid pair the old
+    // constructor took.
+    static_libs: [
+        "framework-permission-aidl-cpp",
+    ],
+    // AudioTrack.h pulls in media/Modulo.h, which libaudioclient does not
+    // re-export.
+    header_libs: [
+        "libmedia_headers",
+    ],
+    // Only the 32-bit blob uses this.
+    compile_multilib: "32",
+}

@@ -1,0 +1,12 @@
+type hal_lge_mtv_default_exec, exec_type, vendor_file_type, file_type;
+init_daemon_domain(hal_lge_mtv_default)
+
+hwbinder_use(hal_lge_mtv_default)
+add_hwservice(hal_lge_mtv_default, hal_lge_mtv_hwservice)
+
+# The tuner itself.
+allow hal_lge_mtv_default broadcast_isdbt_device:chr_file rw_file_perms;
+
+# hwservicemanager_prop is read while registering; hwbinder_use does not cover
+# it on its own here.
+get_prop(hal_lge_mtv_default, hwservicemanager_prop)

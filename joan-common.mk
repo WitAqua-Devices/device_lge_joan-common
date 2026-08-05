@@ -121,6 +121,15 @@ PRODUCT_PACKAGES += \
     QuadDACPanel \
     vendor.lge.hardware.audio.dac.control@2.0-service
 
+# Full-seg TV. The interface is rebuilt from source rather than taken from the
+# dump, so it has to be asked for explicitly - the prebuilts that use it have
+# their dependency generation turned off.
+PRODUCT_PACKAGES += \
+    libmtv_jnijp.lge \
+    libmtvmedia_shim \
+    vendor.lge.hardware.dvb@1.0 \
+    vendor.lge.hardware.mtv@1.0
+
 # Dalvik
 $(call inherit-product, frameworks/native/build/phone-xhdpi-4096-dalvik-heap.mk)
 
@@ -312,7 +321,8 @@ PRODUCT_COPY_FILES += \
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/privapp-permissions-joan.xml:$(TARGET_COPY_OUT_SYSTEM_EXT)/etc/permissions/privapp-permissions-joan.xml \
-    $(LOCAL_PATH)/configs/privapp-permissions-hotword.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/privapp-permissions-hotword.xml
+    $(LOCAL_PATH)/configs/privapp-permissions-hotword.xml:$(TARGET_COPY_OUT_PRODUCT)/etc/permissions/privapp-permissions-hotword.xml \
+    $(LOCAL_PATH)/configs/privapp-permissions-lge-joan.xml:$(TARGET_COPY_OUT_SYSTEM)/etc/permissions/privapp-permissions-lge-joan.xml
 
 # Power
 PRODUCT_PACKAGES += \
@@ -373,6 +383,15 @@ PRODUCT_PACKAGES += \
 
 PRODUCT_BOOT_JARS += \
     telephony-ext
+
+# LG framework stubs - see framework/lge/. The stock apps call com.lge.* APIs
+# that LG adds by patching framework.jar, so they have to be on the boot
+# classpath rather than shipped as a shared library.
+PRODUCT_PACKAGES += \
+    com.lge
+
+PRODUCT_BOOT_JARS += \
+    com.lge
 
 PRODUCT_COPY_FILES += \
     $(LOCAL_PATH)/configs/qmi_fw.conf:$(TARGET_COPY_OUT_VENDOR)/etc/qmi_fw.conf

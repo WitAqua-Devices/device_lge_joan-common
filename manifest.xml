@@ -506,6 +506,31 @@
         </interface>
     </hal>
     <hal format="hidl">
+        <name>vendor.lge.hardware.mtv</name>
+        <transport>hwbinder</transport>
+        <version>1.0</version>
+        <interface>
+            <name>ILgeMtv</name>
+            <instance>default</instance>
+        </interface>
+        <fqname>@1.0::ILgeMtv/default</fqname>
+    </hal>
+    <hal format="hidl">
+        <name>vendor.lge.hardware.dvb</name>
+        <transport>hwbinder</transport>
+        <version>1.0</version>
+        <interface>
+            <name>ILgeDvb</name>
+            <instance>default</instance>
+        </interface>
+        <interface>
+            <name>ILgeRmp</name>
+            <instance>default</instance>
+        </interface>
+        <fqname>@1.0::ILgeDvb/default</fqname>
+        <fqname>@1.0::ILgeRmp/default</fqname>
+    </hal>
+    <hal format="hidl">
         <name>vendor.lge.hardware.lite_radio</name>
         <transport>hwbinder</transport>
         <version>1.3</version>
