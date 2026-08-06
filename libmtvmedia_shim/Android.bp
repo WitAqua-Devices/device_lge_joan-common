@@ -3,15 +3,19 @@
 // SPDX-License-Identifier: Apache-2.0
 //
 
-// What libmtv_servicejp.lge.so wants from the media framework and no longer
-// finds there: libmediaextractor's DataSourceBase, the MIME types LG added to
-// libstagefright_foundation, the android 9 AudioTrack constructor, and a
-// MemoryHeapBase laid out the way it was in android 9. The libmediaextractor
-// NEEDED entry is rewritten to point at this in extract-files.py.
+// What libmtv_servicejp.lge.so needs from a media framework that has moved on:
+// libmediaextractor's DataSourceBase and the MIME types LG added to
+// libstagefright_foundation, both simply gone, plus android 9 shaped versions
+// of AudioTrack, MemoryHeapBase and NuPlayerDriver, and bridges for the two
+// interfaces the framework calls back into - AudioSink and DataSource - whose
+// slots moved under the blob's own vtables. extract-files.py points the blob at
+// the first three by renaming the symbols it looks up, and rewrites its
+// libmediaextractor NEEDED entry to this.
 cc_library_shared {
     name: "libmtvmedia_shim",
     srcs: [
         "audiotrack_shim.cpp",
+        "datasource_shim.cpp",
         "memoryheap_shim.cpp",
         "mtvmedia_shim.cpp",
         "nuplayer_shim.cpp",
