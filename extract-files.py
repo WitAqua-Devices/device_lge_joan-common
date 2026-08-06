@@ -104,6 +104,26 @@ blob_fixups: blob_fixups_user_type = {
         .binary_regex_replace(
             rb'_ZN7android14NuPlayerDriverC1Ei',
             b'_ZN7android14LegacyNuDriverC1Ei')
+        # android::AudioTrack went the other way from MemoryHeapBase: it gained
+        # a virtual base, so RefBase moved from +0 to +1000 and the class grew
+        # from 840 bytes to 1008. The blob allocates the android 9 size and
+        # reaches four fields by their android 9 offsets - mFrameCount at +0x48,
+        # mChannelCount at +0x64, mFrameSize at +0x1bc and mStatus at +0x1c0,
+        # thirteen sites between them - so neither a wrapper nor a placement
+        # new into its allocation can hold: the object has to be the shape it
+        # thinks it is. audiotrack_shim.cpp is that class.
+        #
+        # Anchored on "android10AudioTrack" rather than "10AudioTrack", and the
+        # difference matters. The blob also carries two weak *definitions*,
+        # sp<AudioTrack>::operator=, whose names contain NS_10AudioTrack.
+        # Defined symbols are indexed in .gnu.hash - renaming those puts them in
+        # the wrong bucket, and since the references to them are weak, bionic
+        # resolves to address 0 and calls it. The prefix leaves them alone, and
+        # nothing else in the image defines them, so they keep resolving to the
+        # blob's own copies. Fourteen undefined symbols match, 19 bytes each way.
+        .binary_regex_replace(
+            rb'android10AudioTrack',
+            b'android10LegacyTrak')
         # MobitPlayerService::selectTrack keeps its two Parcels in function-local
         # statics, and their .bss slots were sized by the android 9
         # sizeof(Parcel) of 52. The class is 60 bytes now, so +52 - which is
