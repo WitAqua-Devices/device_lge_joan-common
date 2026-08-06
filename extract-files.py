@@ -103,7 +103,59 @@ blob_fixups: blob_fixups_user_type = {
             b'_ZN7android14LegacyHeapBaseC1EjjPKc')
         .binary_regex_replace(
             rb'_ZN7android14NuPlayerDriverC1Ei',
-            b'_ZN7android14LegacyNuDriverC1Ei'),
+            b'_ZN7android14LegacyNuDriverC1Ei')
+        # MobitPlayerService::selectTrack keeps its two Parcels in function-local
+        # statics, and their .bss slots were sized by the android 9
+        # sizeof(Parcel) of 52. The class is 60 bytes now, so +52 - which is
+        # Parcel::mOwner - lands on the guard variable sitting right behind each
+        # object, and __cxa_guard_release stores 1 into it. The first freeData()
+        # then calls through mOwner == 1. It is not a corruption that might bite:
+        # it is every time, from the first call.
+        #
+        # Nothing can be freed up in .bss - the linker packed it solid to its
+        # last byte, where cch_base_info ends at 0x78232c. What is free is the
+        # rest of that page: the RW segment ends mid-page and bionic maps and
+        # zeroes through page_end (0x783000), so 0xcd4 bytes there are mapped,
+        # writable and claimed by nothing. The objects move to 0x782330 and
+        # 0x782370; the guards stay where they are, since their addresses come
+        # from literals of their own.
+        #
+        #   .text 0x49ce4 -> Parcel #1, constructor site
+        #   .text 0x49cfc -> Parcel #2, constructor site
+        #   .text 0x49d0c -> Parcel #1, the outgoing data parcel
+        #   .text 0x49d1c -> Parcel #2, the reply parcel
+        #
+        # Each is the displacement of an `ldr rX,[pc,#n]; add rX,pc` pair, so the
+        # value is target - (address of the add + 4). The window matched here is
+        # the whole literal pool - unique in the file, where a bare four-byte
+        # displacement would not stay that way - and the six guard literals in it
+        # are rewritten to themselves.
+        #
+        # This has to be sig_replace rather than binary_regex_replace: the bytes
+        # include 0x2e and friends, which a regex would read as metacharacters.
+        .sig_replace(
+            '6c 80 72 00 2c 80 72 00 92 d1 04 00 68 e3 04 00 '
+            '46 80 72 00 74 81 72 00 74 80 72 00 32 80 72 00 '
+            '60 d1 04 00 36 e3 04 00 4c 80 72 00 fa 80 72 00 '
+            '4d 20 02 00 e7 2e 02 00 b8 2e 02 00 e8 80 72 00',
+            '6c807200a886730092d1040068e30400'
+            '468072007481720074807200b6867300'
+            '60d1040036e304004c80720076877300'
+            '4d200200e72e0200b82e02006c877300')
+        # And the RW PT_LOAD's p_memsz, 0x6eca6c -> 0x6ecaf0, so the two Parcels
+        # are inside the segment the file declares rather than in a page that
+        # only happens to be mapped. Nothing changes at run time - page_end was
+        # already 0x783000 - but the file stops lying about what it uses.
+        #
+        # Note this pins the program header layout: adding a patchelf-backed
+        # fixup to this blob would move it and leave this silently unmatched.
+        # replace_needed above does not, because the new name is no longer than
+        # the old one and extract-utils rewrites those in place.
+        .sig_replace(
+            '01 00 00 00 c0 38 09 00 c0 58 09 00 c0 58 09 00 '
+            '88 30 00 00 6c ca 6e 00 06 00 00 00 00 10 00 00',
+            '01000000c0380900c0580900c0580900'
+            '88300000f0ca6e000600000000100000'),
     # Same for the shared library declaration: the jar moved to /system, and the
     # path in here is what decides which linker namespace the app gets when it
     # loads the jar's JNI - product-clns cannot see libcutils.
