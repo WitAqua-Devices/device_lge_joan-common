@@ -58,6 +58,10 @@
 
 namespace android {
 
+// datasource_shim.cpp: wraps a DataSource carrying android 9's virtual order in
+// one the current framework can call. Returns null for null.
+sp<DataSource> WrapLegacy9DataSource(const sp<DataSource>& legacy);
+
 // ---------------------------------------------------------------------------
 // The android 9 MediaPlayerBase::AudioSink.
 //
@@ -264,11 +268,12 @@ public:
         return mReal->setDataSource(source);
     }
     // The DataSource handed in here is one of the blob's and has android 9's
-    // virtual order, which is not this one - see D in docs/abi-sweep.md. It
-    // reaches the right slot either way, so this is no worse than before, but
-    // it still needs the same bridge treatment as the sink above.
+    // virtual order, which is not this one - see D in docs/abi-sweep.md. The
+    // pointer reaches the right slot, but slots 6-11 behind it are a different
+    // set of functions, so it goes through the same kind of bridge as the sink
+    // above.
     virtual status_t setDataSource(const sp<DataSource>& source) {              // 12
-        return mReal->setDataSource(source);
+        return mReal->setDataSource(WrapLegacy9DataSource(source));
     }
     virtual status_t setVideoSurfaceTexture(const sp<IGraphicBufferProducer>& bufferProducer) {
         return mReal->setVideoSurfaceTexture(bufferProducer);                   // 13
