@@ -26,3 +26,6 @@ ro.lge.window_color							u:object_r:vendor_sensors_prop:s0
 
 # vendor_timekep_prop
 persist.vendor.timeadjust					u:object_r:vendor_timekeep_prop:s0
+
+# vendor_lge_build_prop
+ro.vendor.lge.								u:object_r:vendor_lge_build_prop:s0
