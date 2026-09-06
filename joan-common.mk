@@ -10,7 +10,8 @@ $(call inherit-product, hardware/qcom-caf/common/common.mk)
 PRODUCT_SOONG_NAMESPACES += \
     $(LOCAL_PATH) \
     bootable/deprecated-ota \
-    hardware/lge
+    hardware/lge \
+    hardware/sony/timekeep
 
 # Overlays
 DEVICE_PACKAGE_OVERLAYS += $(LOCAL_PATH)/overlay \
