@@ -354,6 +354,18 @@ PRODUCT_COPY_FILES += \
 
 $(call soong_config_set,lineage_recovery,bootloader_message_offset,128)
 
+# Recovery cannot authorize an adb host: the keys the framework collects live
+# in /data, which it does not mount, and it has no way to show the prompt. That
+# leaves adb usable only from inside sideload, which is not enough to look at
+# what an install did. joan has no fastboot either, so recovery is the only
+# place left to work from when the system does not come up.
+#
+# ro.adb.secure stays on. The recovery adbd is the only build of adbd that
+# compiles the .recovery half of the pair in, so this says nothing about the
+# adbd on the booted system.
+PRODUCT_SYSTEM_DEFAULT_PROPERTIES += \
+    ro.adb.secure.recovery=0
+
 # RCS
 PRODUCT_PACKAGES += \
     com.android.ims.rcsmanager \
