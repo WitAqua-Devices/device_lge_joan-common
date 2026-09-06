@@ -28,6 +28,18 @@ using android::base::GetProperty;
 #define PROPERTY_LGE_SKU "ro.vendor.lge.sku"
 
 /*
+ * LG's own apps read the operator and the market the image was built for out
+ * of these, and branch hard on them: the hidden menu builds a different list
+ * of screens for KDDI, for DCM and for everyone else. vendor.prop can only
+ * name one pair, and one image serves both japanese SKUs, so the pair has to
+ * follow the model the bootloader reports the same way the fingerprint does.
+ * ro.vendor.lge.swversion is the version string those screens then show.
+ */
+#define PROPERTY_LGE_OPERATOR "ro.vendor.lge.build.target_operator"
+#define PROPERTY_LGE_COUNTRY "ro.vendor.lge.build.target_country"
+#define PROPERTY_LGE_SWVERSION "ro.vendor.lge.swversion"
+
+/*
  * The model in each variant is the one the stock build reports, and doubles as
  * the fallback for when the bootloader does not hand us PROPERTY_LGE_MODEL:
  * an unknown SKU is still better described by the identity we are about to
@@ -86,12 +98,20 @@ void init_target_properties()
     }
 
     model = GetProperty(PROPERTY_LGE_MODEL, "");
-    if(model == "LGV35")
+    if(model == "LGV35") {
         variant = joan_kddi_jp_info;
-    else if (model == "L-01K")
+        property_override(PROPERTY_LGE_OPERATOR, "KDDI");
+        property_override(PROPERTY_LGE_COUNTRY, "JP");
+        property_override(PROPERTY_LGE_SWVERSION, "LGV3520f");
+    } else if (model == "L-01K") {
         variant = joan_dcm_jp_info;
-    else
+        property_override(PROPERTY_LGE_OPERATOR, "DCM");
+        property_override(PROPERTY_LGE_COUNTRY, "JP");
+        property_override(PROPERTY_LGE_SWVERSION, "L01K20k");
+    } else {
+        /* vendor.prop already names the global pair. */
         variant = joan_global_com_info;
+    }
 
     /* Only the bootloader knows the SKU; keep the variant model without it. */
     if (!model.empty())
