@@ -9,6 +9,40 @@ import /vendor/etc/init/hw/init.lge.fingerprints.rc
 # import chipset common rc file
 import /vendor/etc/init/hw/init.msm8998.rc
 
+# The japanese SKUs share a single build - only the bootloader knows which
+# handset this is, and init_lge_msm8998.cpp turns that into ro.vendor.lge.sku -
+# so anything calibrated per model ships beside the canonical path with the SKU
+# name appended, and gets bound over it here.
+#
+# A SKU only needs a suffixed copy where what sits at the canonical path is not
+# already its own: the acdb set comes from joan-common and belongs to no
+# japanese handset, so both spell themselves out, while the WLAN board data and
+# the felica configuration come from this device's own blob list and are
+# already the docomo ones. init ignores ENOENT from mount, so a SKU with no
+# copy of its own, and an unknown SKU, simply keep what is there.
+#
+# early-init is early enough that nothing has these open yet: a bind mount is
+# invisible to a file descriptor somebody already holds. SetupMountNamespaces()
+# marks / shared before the triggers run, so the mounts propagate into the
+# namespace the HALs and apps end up in rather than staying with init.
+on early-init
+    # Handset_cal and Speaker_cal are tuned for a different acoustic design.
+    # The whole directory moves so a calibration set is never mixed across
+    # models.
+    mount none /vendor/etc/acdbdata_${ro.vendor.lge.sku} /vendor/etc/acdbdata bind
+
+    # WLAN board data - transmit power and antenna trim. These are the files
+    # /vendor/firmware/wlan/qca_cld symlinks to, so binding them redirects the
+    # driver without touching the firmware directory it asks for.
+    mount none /vendor/etc/wifi/bdwlan_${ro.vendor.lge.sku}.bin /vendor/etc/wifi/bdwlan.bin bind
+    mount none /vendor/etc/wifi/bdwlan_ch0_${ro.vendor.lge.sku}.bin /vendor/etc/wifi/bdwlan_ch0.bin bind
+    mount none /vendor/etc/wifi/bdwlan_ch1_${ro.vendor.lge.sku}.bin /vendor/etc/wifi/bdwlan_ch1.bin bind
+
+    # mfs.cfg and mfm.cfg carry a model certificate FeliCa Networks signed per
+    # handset, and config_felica.xml is the antenna autotune table, so the chip
+    # will not authenticate against another model's set.
+    mount none /system/etc/felica_${ro.vendor.lge.sku} /system/etc/felica bind
+
 on post-fs-data
     mkdir /data/vendor/nfc 0770 nfc nfc
 

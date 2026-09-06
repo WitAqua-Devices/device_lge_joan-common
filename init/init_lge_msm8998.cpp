@@ -19,6 +19,15 @@ using android::base::GetProperty;
 #define PROPERTY_LGE_MODEL "ro.boot.vendor.lge.model.name"
 
 /*
+ * The stock ro.product.name - joan_dcm_jp and friends - is the one spelling of
+ * the SKU that everything else already uses: the kernel device trees, the
+ * defconfig symbols, and the per-variant copies of the calibration data that
+ * init.joan.rc binds over the canonical paths. Publishing it here keeps the rc
+ * file from carrying a second copy of the model-to-variant table.
+ */
+#define PROPERTY_LGE_SKU "ro.vendor.lge.sku"
+
+/*
  * The model in each variant is the one the stock build reports, and doubles as
  * the fallback for when the bootloader does not hand us PROPERTY_LGE_MODEL:
  * an unknown SKU is still better described by the identity we are about to
@@ -89,7 +98,10 @@ void init_target_properties()
         variant.model = model;
 
     set_variant_props(variant);
-    set_ro_build_prop("name", fingerprint_to_name(variant.build_fingerprint), true);
+
+    std::string name = fingerprint_to_name(variant.build_fingerprint);
+    set_ro_build_prop("name", name, true);
+    property_override(PROPERTY_LGE_SKU, name);
 }
 
 void vendor_load_properties() {
