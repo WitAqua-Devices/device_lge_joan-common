@@ -1,0 +1,273 @@
+diff --git a/smali/com/lge/hiddenmenu/LCD/LCDMain.smali b/smali/com/lge/hiddenmenu/LCD/LCDMain.smali
+index cff1a54..ea279d2 100644
+--- a/smali/com/lge/hiddenmenu/LCD/LCDMain.smali
++++ b/smali/com/lge/hiddenmenu/LCD/LCDMain.smali
+@@ -36,9 +36,7 @@
+ 
+     const v1, 0x2060044
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     sput-boolean v0, Lcom/lge/hiddenmenu/LCD/LCDMain;->HAS_CONE:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/LCD/lcd_test/AODAfterImageTest.smali b/smali/com/lge/hiddenmenu/LCD/lcd_test/AODAfterImageTest.smali
+index 9f21c9a..d6053d9 100644
+--- a/smali/com/lge/hiddenmenu/LCD/lcd_test/AODAfterImageTest.smali
++++ b/smali/com/lge/hiddenmenu/LCD/lcd_test/AODAfterImageTest.smali
+@@ -643,9 +643,7 @@
+ 
+     const v4, 0x2060084
+ 
+-    invoke-virtual {v3, v4}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v3
++    const v3, 0x0
+ 
+     iput-boolean v3, p0, Lcom/lge/hiddenmenu/LCD/lcd_test/AODAfterImageTest;->useMipi:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImage2Test.smali b/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImage2Test.smali
+index 6c27b1f..65885e0 100644
+--- a/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImage2Test.smali
++++ b/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImage2Test.smali
+@@ -44,9 +44,7 @@
+ 
+     const v1, 0x2060044
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     sput-boolean v0, Lcom/lge/hiddenmenu/LCD/lcd_test/AfterImage2Test;->HAS_EXTENDED_LCD:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImageTest.smali b/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImageTest.smali
+index 20b0757..70c3db3 100644
+--- a/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImageTest.smali
++++ b/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImageTest.smali
+@@ -48,9 +48,7 @@
+ 
+     const v1, 0x2060044
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     sput-boolean v0, Lcom/lge/hiddenmenu/LCD/lcd_test/AfterImageTest;->HAS_EXTENDED_LCD:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/LCD/lcd_test/LCDTest.smali b/smali/com/lge/hiddenmenu/LCD/lcd_test/LCDTest.smali
+index 98ada78..be5324c 100644
+--- a/smali/com/lge/hiddenmenu/LCD/lcd_test/LCDTest.smali
++++ b/smali/com/lge/hiddenmenu/LCD/lcd_test/LCDTest.smali
+@@ -68,9 +68,7 @@
+ 
+     const v1, 0x20600e1
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x1
+ 
+     iput-boolean v0, p0, Lcom/lge/hiddenmenu/LCD/lcd_test/LCDTest;->mUsingDozeDisplayStateForAOD:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/LCD/lcd_test/LcdAutoManualTest.smali b/smali/com/lge/hiddenmenu/LCD/lcd_test/LcdAutoManualTest.smali
+index 8edba7b..cbdd357 100644
+--- a/smali/com/lge/hiddenmenu/LCD/lcd_test/LcdAutoManualTest.smali
++++ b/smali/com/lge/hiddenmenu/LCD/lcd_test/LcdAutoManualTest.smali
+@@ -48,9 +48,7 @@
+ 
+     const v1, 0x2060044
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     sput-boolean v0, Lcom/lge/hiddenmenu/LCD/lcd_test/LcdAutoManualTest;->HAS_CONE:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/LCD/lcd_test/MuraTest.smali b/smali/com/lge/hiddenmenu/LCD/lcd_test/MuraTest.smali
+index b800cff..9f11edd 100644
+--- a/smali/com/lge/hiddenmenu/LCD/lcd_test/MuraTest.smali
++++ b/smali/com/lge/hiddenmenu/LCD/lcd_test/MuraTest.smali
+@@ -42,9 +42,7 @@
+ 
+     const v1, 0x2060044
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     sput-boolean v0, Lcom/lge/hiddenmenu/LCD/lcd_test/MuraTest;->HAS_CONE:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/LED/LEDMain.smali b/smali/com/lge/hiddenmenu/LED/LEDMain.smali
+index ce4d3e7..874cba0 100644
+--- a/smali/com/lge/hiddenmenu/LED/LEDMain.smali
++++ b/smali/com/lge/hiddenmenu/LED/LEDMain.smali
+@@ -148,9 +148,7 @@
+ 
+     const v1, 0x20b0005
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getInteger(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/LED/LEDMain;->mLedType:I
+ 
+diff --git a/smali/com/lge/hiddenmenu/LED/LEDSceneTest.smali b/smali/com/lge/hiddenmenu/LED/LEDSceneTest.smali
+index fb8f88f..596782c 100644
+--- a/smali/com/lge/hiddenmenu/LED/LEDSceneTest.smali
++++ b/smali/com/lge/hiddenmenu/LED/LEDSceneTest.smali
+@@ -988,9 +988,7 @@
+ 
+     const v1, 0x2060030
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput-boolean v0, p0, Lcom/lge/hiddenmenu/LED/LEDSceneTest;->mHasBackLED:Z
+ 
+@@ -1001,9 +999,7 @@
+ 
+     const v1, 0x206005b
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput-boolean v0, p0, Lcom/lge/hiddenmenu/LED/LEDSceneTest;->mHasOneColorLED:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/LED/LEDSupportedInfo.smali b/smali/com/lge/hiddenmenu/LED/LEDSupportedInfo.smali
+index f91231c..2d93158 100644
+--- a/smali/com/lge/hiddenmenu/LED/LEDSupportedInfo.smali
++++ b/smali/com/lge/hiddenmenu/LED/LEDSupportedInfo.smali
+@@ -42,9 +42,7 @@
+ 
+     const v1, 0x20b0005
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getInteger(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/LED/LEDSupportedInfo;->mLedType:I
+ 
+@@ -55,9 +53,7 @@
+ 
+     const v1, 0x2060030
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput-boolean v0, p0, Lcom/lge/hiddenmenu/LED/LEDSupportedInfo;->mHasBackLED:Z
+ 
+@@ -68,9 +64,7 @@
+ 
+     const v1, 0x206005b
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput-boolean v0, p0, Lcom/lge/hiddenmenu/LED/LEDSupportedInfo;->mHasOneColorLED:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/Power/LEDBrightnessTest.smali b/smali/com/lge/hiddenmenu/Power/LEDBrightnessTest.smali
+index d3a4c0a..3c7d081 100644
+--- a/smali/com/lge/hiddenmenu/Power/LEDBrightnessTest.smali
++++ b/smali/com/lge/hiddenmenu/Power/LEDBrightnessTest.smali
+@@ -1144,9 +1144,7 @@
+ 
+     const v1, 0x206005b
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput-boolean v0, p0, Lcom/lge/hiddenmenu/Power/LEDBrightnessTest;->mHasOneColorLED:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/SVC/cover_display/CoverLEDBrightnessTest.smali b/smali/com/lge/hiddenmenu/SVC/cover_display/CoverLEDBrightnessTest.smali
+index 01918a0..3322d43 100644
+--- a/smali/com/lge/hiddenmenu/SVC/cover_display/CoverLEDBrightnessTest.smali
++++ b/smali/com/lge/hiddenmenu/SVC/cover_display/CoverLEDBrightnessTest.smali
+@@ -1156,9 +1156,7 @@
+ 
+     const v1, 0x206005b
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput-boolean v0, p0, Lcom/lge/hiddenmenu/SVC/cover_display/CoverLEDBrightnessTest;->mHasOneColorLED:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/Sensor/SensorMain.smali b/smali/com/lge/hiddenmenu/Sensor/SensorMain.smali
+index ad242b8..2142b59 100644
+--- a/smali/com/lge/hiddenmenu/Sensor/SensorMain.smali
++++ b/smali/com/lge/hiddenmenu/Sensor/SensorMain.smali
+@@ -50,9 +50,7 @@
+ 
+     const v2, 0x2060014
+ 
+-    invoke-virtual {v1, v2}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v1
++    const v1, 0x1
+ 
+     .line 97
+     .local v1, "support":Z
+diff --git a/smali/com/lge/hiddenmenu/Touch/LPWGAutoTouchTest.smali b/smali/com/lge/hiddenmenu/Touch/LPWGAutoTouchTest.smali
+index f8c2a02..d2c474c 100644
+--- a/smali/com/lge/hiddenmenu/Touch/LPWGAutoTouchTest.smali
++++ b/smali/com/lge/hiddenmenu/Touch/LPWGAutoTouchTest.smali
+@@ -50,9 +50,7 @@
+ 
+     const v1, 0x2060044
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     sput-boolean v0, Lcom/lge/hiddenmenu/Touch/LPWGAutoTouchTest;->HAS_CONE:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/Touch/TouchSetting.smali b/smali/com/lge/hiddenmenu/Touch/TouchSetting.smali
+index 69be901..951bf6b 100644
+--- a/smali/com/lge/hiddenmenu/Touch/TouchSetting.smali
++++ b/smali/com/lge/hiddenmenu/Touch/TouchSetting.smali
+@@ -57,9 +57,7 @@
+ 
+     const v2, 0x2060044
+ 
+-    invoke-virtual {v1, v2}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v1
++    const v1, 0x0
+ 
+     sput-boolean v1, Lcom/lge/hiddenmenu/Touch/TouchSetting;->HAS_CONE:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/updt/DataDebugScreen.smali b/smali/com/lge/hiddenmenu/updt/DataDebugScreen.smali
+index 1f41199..ff86e09 100644
+--- a/smali/com/lge/hiddenmenu/updt/DataDebugScreen.smali
++++ b/smali/com/lge/hiddenmenu/updt/DataDebugScreen.smali
+@@ -504,9 +504,7 @@
+ 
+     const v15, 0x20b0010
+ 
+-    invoke-virtual {v14, v15}, Landroid/content/res/Resources;->getInteger(I)I
+-
+-    move-result v14
++    const v14, 0x1f0
+ 
+     if-lez v14, :cond_0
+ 

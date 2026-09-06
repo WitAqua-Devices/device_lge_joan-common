@@ -176,6 +176,41 @@ blob_fixups: blob_fixups_user_type = {
             '88 30 00 00 6c ca 6e 00 06 00 00 00 00 10 00 00',
             '01000000c0380900c0580900c0580900'
             '88300000f0ca6e000600000000100000'),
+    # HiddenMenu's resource references are all its own, but its code is not:
+    # nineteen call sites do Resources.getSystem().getBoolean(0x02......) and
+    # friends, reading config out of com.lge by hard-coded id. LG must extend
+    # getSystem() to cover their resource library; AOSP's covers android only,
+    # so the lookups raise Resources$NotFoundException. One of them decides a
+    # static in TouchSetting, which HiddenMenu.onCreate touches, so the app dies
+    # before it draws:
+    #
+    #   Resources$NotFoundException: Resource ID #0x2060044
+    #   at com.lge.hiddenmenu.Touch.TouchSetting.<clinit>(TouchSetting.java:41)
+    #
+    # patches/HiddenMenu/ answers each one with the constant lge-res holds for
+    # it. Two more sites want dimensions - 0x20c00f4 and 0x20c00f5 - and those
+    # are left alone: getDimensionPixelSize resolves against the display
+    # density, so there is no one number to write. They sit in three of the
+    # touch test screens, which is a good deal further in than the front door.
+    'system/app/HiddenMenu/HiddenMenu.apk': blob_fixup()
+        .apktool_patch('patches/HiddenMenu'),
+    # LGJDMB reaches into com.lge - the shared resource library that ships as
+    # framework/lge-res/lge-res.apk - for dimensions, colours and its activity
+    # themes, and it does not name that library in a uses-library, so on stock
+    # something in LG's framework must be linking it into every app. Nothing
+    # here does, which leaves all 23 of those references as
+    # TYPE_DYNAMIC_REFERENCE and kills the app on the first screen it draws:
+    #
+    #   add_preset_area_list_item -> TextView
+    #   UnsupportedOperationException: Can't convert value at index 2 to
+    #   dimension: type=0x7
+    #
+    # and that screen is the area picker, which an unconfigured install goes
+    # straight to. patches/LGJDMB/ answers them out of the apk's own package
+    # with the values read back out of the stock library, which is a great deal
+    # less to carry than a 47 MB resource blob and a framework that links it.
+    'system/priv-app/LGJDMB/LGJDMB.apk': blob_fixup()
+        .apktool_patch('patches/LGJDMB'),
     # Same for the shared library declaration: the jar moved to /system, and the
     # path in here is what decides which linker namespace the app gets when it
     # loads the jar's JNI - product-clns cannot see libcutils.

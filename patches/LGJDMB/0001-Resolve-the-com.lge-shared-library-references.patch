@@ -1,0 +1,814 @@
+diff --git a/AndroidManifest.xml b/AndroidManifest.xml
+index 61dd3fa..2bf9b55 100644
+--- a/AndroidManifest.xml
++++ b/AndroidManifest.xml
+@@ -46,7 +46,7 @@
+         <meta-data android:name="com.lge.app.forceHideImmersiveConfirm" android:value="true"/>
+         <meta-data android:name="android.max_aspect" android:value="2.0"/>
+         <meta-data android:name="com.lge.special_display" android:value="true"/>
+-        <activity android:configChanges="fontScale|keyboardHidden|locale|orientation|screenLayout|screenSize" android:launchMode="singleTop" android:name="com.lge.oneseg.TdmbStartActivity" android:theme="@com.lge:style/Theme.LGE.White.Translucent.NoTitleBar">
++        <activity android:configChanges="fontScale|keyboardHidden|locale|orientation|screenLayout|screenSize" android:launchMode="singleTop" android:name="com.lge.oneseg.TdmbStartActivity" android:theme="@style/Theme.LGE.White.Translucent.NoTitleBar">
+             <intent-filter>
+                 <action android:name="android.intent.action.MAIN"/>
+                 <category android:name="android.intent.category.LAUNCHER"/>
+@@ -65,21 +65,21 @@
+             </intent-filter>
+         </activity>
+         <service android:enabled="true" android:name="com.lge.oneseg.service.TdmbInterfaceService"/>
+-        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:name="com.lge.oneseg.reservation.Dmb_ReservationActivity" android:theme="@com.lge:style/Theme.LGE.White.Translucent">
++        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:name="com.lge.oneseg.reservation.Dmb_ReservationActivity" android:theme="@style/Theme.LGE.White.Translucent">
+             <intent-filter>
+                 <action android:name="android.intent.action.VIEW"/>
+                 <action android:name="ACTION_DTV_RESERVATION_LIST"/>
+                 <category android:name="android.intent.category.DEFAULT"/>
+             </intent-filter>
+         </activity>
+-        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:name="com.lge.oneseg.reservation.Dmb_ReservationAddActivity" android:theme="@com.lge:style/Theme.LGE.White.Translucent">
++        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:name="com.lge.oneseg.reservation.Dmb_ReservationAddActivity" android:theme="@style/Theme.LGE.White.Translucent">
+             <intent-filter>
+                 <action android:name="android.intent.action.VIEW"/>
+                 <action android:name="ACTION_DTV_RESERVATION_DETAILS"/>
+                 <category android:name="android.intent.category.DEFAULT"/>
+             </intent-filter>
+         </activity>
+-        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:name="com.lge.oneseg.reservation.Dmb_ReservationReceiveAlarmActivity" android:theme="@com.lge:style/Theme.LGE.White.Translucent">
++        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:name="com.lge.oneseg.reservation.Dmb_ReservationReceiveAlarmActivity" android:theme="@style/Theme.LGE.White.Translucent">
+             <intent-filter>
+                 <action android:name="android.intent.action.VIEW"/>
+                 <action android:name="ACTION_DTV_VIEW"/>
+@@ -106,7 +106,7 @@
+                 <action android:name="android.intent.action.LOCALE_CHANGED"/>
+             </intent-filter>
+         </receiver>
+-        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:name="com.lge.oneseg.reservation.Dmb_ReservationSelectActivity" android:theme="@com.lge:style/Theme.LGE.White.Translucent">
++        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:name="com.lge.oneseg.reservation.Dmb_ReservationSelectActivity" android:theme="@style/Theme.LGE.White.Translucent">
+             <intent-filter>
+                 <action android:name="android.intent.action.VIEW"/>
+                 <category android:name="android.intent.category.DEFAULT"/>
+@@ -142,19 +142,19 @@
+                 <category android:name="android.intent.category.DEFAULT"/>
+             </intent-filter>
+         </activity>
+-        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:label="@string/tv_settings" android:name="com.lge.oneseg.settings.TdmbTVSettingsActivity" android:theme="@com.lge:style/Theme.LGE.White.Translucent">
++        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:label="@string/tv_settings" android:name="com.lge.oneseg.settings.TdmbTVSettingsActivity" android:theme="@style/Theme.LGE.White.Translucent">
+             <intent-filter>
+                 <action android:name="android.intent.action.VIEW"/>
+                 <category android:name="android.intent.category.DEFAULT"/>
+             </intent-filter>
+         </activity>
+-        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:label="@string/tv_settings" android:name="com.lge.oneseg.settings.TdmbTVSettingsOneSegOnlyActivity" android:theme="@com.lge:style/Theme.LGE.White.Translucent">
++        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:label="@string/tv_settings" android:name="com.lge.oneseg.settings.TdmbTVSettingsOneSegOnlyActivity" android:theme="@style/Theme.LGE.White.Translucent">
+             <intent-filter>
+                 <action android:name="android.intent.action.VIEW"/>
+                 <category android:name="android.intent.category.DEFAULT"/>
+             </intent-filter>
+         </activity>
+-        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:label="@string/cas_information" android:name="com.lge.oneseg.settings.TdmbTVCASInfoActivity" android:theme="@com.lge:style/Theme.LGE.White.Translucent">
++        <activity android:configChanges="keyboardHidden|orientation|screenSize" android:label="@string/cas_information" android:name="com.lge.oneseg.settings.TdmbTVCASInfoActivity" android:theme="@style/Theme.LGE.White.Translucent">
+             <intent-filter>
+                 <action android:name="android.intent.action.VIEW"/>
+                 <category android:name="android.intent.category.DEFAULT"/>
+diff --git a/res/color/reservation_date_time_button_color.xml b/res/color/reservation_date_time_button_color.xml
+index cca646c..8bc6bb4 100644
+--- a/res/color/reservation_date_time_button_color.xml
++++ b/res/color/reservation_date_time_button_color.xml
+@@ -1,6 +1,6 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <selector
+   xmlns:android="http://schemas.android.com/apk/res/android">
+-    <item android:state_enabled="true" android:color="?com.lge:colorButtonBarBackground" android:alpha="1.0" />
+-    <item android:state_enabled="false" android:color="?com.lge:colorButtonBarBackground" android:alpha="0.4" />
++    <item android:state_enabled="true" android:color="?android:attr/colorButtonNormal" android:alpha="1.0" />
++    <item android:state_enabled="false" android:color="?android:attr/colorButtonNormal" android:alpha="0.4" />
+ </selector>
+\ No newline at end of file
+diff --git a/res/drawable/divider.xml b/res/drawable/divider.xml
+index cc0d921..e6edd9c 100644
+--- a/res/drawable/divider.xml
++++ b/res/drawable/divider.xml
+@@ -2,6 +2,6 @@
+ <inset android:insetLeft="@dimen/listview_padding" android:insetRight="@dimen/listview_padding"
+   xmlns:android="http://schemas.android.com/apk/res/android">
+     <shape>
+-        <solid android:color="@com.lge:color/list_divider_color" />
++        <solid android:color="@color/lgeres_list_divider_color" />
+     </shape>
+ </inset>
+\ No newline at end of file
+diff --git a/res/drawable/rectangle_shape_grid_channel_item.xml b/res/drawable/rectangle_shape_grid_channel_item.xml
+index ebe7e66..5f42008 100644
+--- a/res/drawable/rectangle_shape_grid_channel_item.xml
++++ b/res/drawable/rectangle_shape_grid_channel_item.xml
+@@ -2,5 +2,5 @@
+ <shape android:shape="rectangle" android:useLevel="false" android:innerRadius="0.0dip"
+   xmlns:android="http://schemas.android.com/apk/res/android">
+     <solid android:color="@color/channel_list_item_background" />
+-    <stroke android:width="0.5dip" android:color="@com.lge:color/list_divider_color" />
++    <stroke android:width="0.5dip" android:color="@color/lgeres_list_divider_color" />
+ </shape>
+\ No newline at end of file
+diff --git a/res/drawable/svg_ic_menu_back.xml b/res/drawable/svg_ic_menu_back.xml
+index 38ee609..4607cb7 100644
+--- a/res/drawable/svg_ic_menu_back.xml
++++ b/res/drawable/svg_ic_menu_back.xml
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <vector android:height="32.0dip" android:width="32.0dip" android:viewportWidth="128.0" android:viewportHeight="128.0"
+   xmlns:android="http://schemas.android.com/apk/res/android">
+-    <path android:fillColor="@com.lge:color/action_bar_title_text_color" android:pathData="M107.09,70.18c0,-11.33 -8.9,-17.26 -17.69,-17.26H32.96L43.68,42.2l-3.54,-3.54l-17.36,17.36l17.36,17.36l3.54,-3.54L33.01,59.18h56.39c5.64,0 11.33,3.4 11.33,11.04l0.02,1.51c0,7.6 -5.69,11 -11.33,11H46.39v6.27h43.03c8.79,0 17.69,-5.93 17.69,-17.31L107.09,70.18z" />
++    <path android:fillColor="@color/action_bar_title_text_color" android:pathData="M107.09,70.18c0,-11.33 -8.9,-17.26 -17.69,-17.26H32.96L43.68,42.2l-3.54,-3.54l-17.36,17.36l17.36,17.36l3.54,-3.54L33.01,59.18h56.39c5.64,0 11.33,3.4 11.33,11.04l0.02,1.51c0,7.6 -5.69,11 -11.33,11H46.39v6.27h43.03c8.79,0 17.69,-5.93 17.69,-17.31L107.09,70.18z" />
+ </vector>
+\ No newline at end of file
+diff --git a/res/drawable/svg_ic_menu_down.xml b/res/drawable/svg_ic_menu_down.xml
+index 3d7ec85..c24b87d 100644
+--- a/res/drawable/svg_ic_menu_down.xml
++++ b/res/drawable/svg_ic_menu_down.xml
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <vector android:height="32.0dip" android:width="32.0dip" android:viewportWidth="128.0" android:viewportHeight="128.0"
+   xmlns:android="http://schemas.android.com/apk/res/android">
+-    <path android:fillColor="@com.lge:color/action_bar_title_text_color" android:pathData="M98.54,50.79L63.89,85.44l-0.02,-0.02l-0.01,0.01L29.24,50.81l4.26,-4.23l30.4,30.4l30.42,-30.42L98.54,50.79z" />
++    <path android:fillColor="@color/action_bar_title_text_color" android:pathData="M98.54,50.79L63.89,85.44l-0.02,-0.02l-0.01,0.01L29.24,50.81l4.26,-4.23l30.4,30.4l30.42,-30.42L98.54,50.79z" />
+ </vector>
+\ No newline at end of file
+diff --git a/res/drawable/svg_ic_menu_up.xml b/res/drawable/svg_ic_menu_up.xml
+index a4a7599..c2bec2a 100644
+--- a/res/drawable/svg_ic_menu_up.xml
++++ b/res/drawable/svg_ic_menu_up.xml
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <vector android:height="32.0dip" android:width="32.0dip" android:viewportWidth="128.0" android:viewportHeight="128.0"
+   xmlns:android="http://schemas.android.com/apk/res/android">
+-    <path android:fillColor="@com.lge:color/action_bar_title_text_color" android:pathData="M63.02,42.01L63.03,42l34.48,34.74l-4.24,4.24L62.99,50.48L32.7,80.99l-4.21,-4.24L63,41.99L63.02,42.01z" />
++    <path android:fillColor="@color/action_bar_title_text_color" android:pathData="M63.02,42.01L63.03,42l34.48,34.74l-4.24,4.24L62.99,50.48L32.7,80.99l-4.21,-4.24L63,41.99L63.02,42.01z" />
+ </vector>
+\ No newline at end of file
+diff --git a/res/layout-sw800dp-hdpi/ch_list.xml b/res/layout-sw800dp-hdpi/ch_list.xml
+index b461986..117a326 100644
+--- a/res/layout-sw800dp-hdpi/ch_list.xml
++++ b/res/layout-sw800dp-hdpi/ch_list.xml
+@@ -4,7 +4,7 @@
+     <GridView android:id="@id/dmbchannel_gridview" android:background="#ffeef0f3" android:layout_width="fill_parent" android:layout_height="fill_parent" android:cacheColorHint="#00000000" android:horizontalSpacing="@dimen/chlist_horizontal_spacing" android:verticalSpacing="@dimen/chlist_vertical_spacing" android:numColumns="3" />
+     <LinearLayout android:orientation="vertical" android:id="@id/chlist_empty_layout" android:background="@color/white" android:layout_width="fill_parent" android:layout_height="fill_parent">
+         <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@id/linearLayout01" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_weight="0.25">
+-            <TextView android:textSize="@com.lge:dimen/type_d03_dp" android:gravity="center" android:id="@id/ch_empty_msg" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginLeft="12.0dip" android:layout_marginRight="12.0dip" android:text="@string/channel_empty_msg" />
++            <TextView android:textSize="@dimen/type_d03_dp" android:gravity="center" android:id="@id/ch_empty_msg" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginLeft="12.0dip" android:layout_marginRight="12.0dip" android:text="@string/channel_empty_msg" />
+         </LinearLayout>
+         <ImageView android:layout_width="fill_parent" android:layout_height="wrap_content" android:src="?android:dividerHorizontal" android:scaleType="fitXY" />
+         <LinearLayout android:layout_gravity="bottom" android:layout_width="fill_parent" android:layout_height="wrap_content" style="?android:buttonBarStyle">
+diff --git a/res/layout-sw800dp-hdpi/tv_screen.xml b/res/layout-sw800dp-hdpi/tv_screen.xml
+index de7d046..c982689 100644
+--- a/res/layout-sw800dp-hdpi/tv_screen.xml
++++ b/res/layout-sw800dp-hdpi/tv_screen.xml
+@@ -8,12 +8,12 @@
+             </LinearLayout>
+         </FrameLayout>
+         <ViewStub android:id="@id/bml_full_remote_key" android:layout="@layout/bml_full_remote_key" android:layout_width="fill_parent" android:layout_height="fill_parent" />
+-        <com.lge.oneseg.caption.CaptionView android:textSize="@com.lge:dimen/type_a01_dp" android:layout_gravity="center" android:id="@id/caption_in_full" android:background="#00000000" android:layout_width="fill_parent" android:layout_height="fill_parent" />
++        <com.lge.oneseg.caption.CaptionView android:textSize="@dimen/type_a01_dp" android:layout_gravity="center" android:id="@id/caption_in_full" android:background="#00000000" android:layout_width="fill_parent" android:layout_height="fill_parent" />
+         <com.lge.oneseg.caption.CaptionView android:layout_gravity="center" android:id="@id/superimpose_in_full" android:background="#00000000" android:layout_width="fill_parent" android:layout_height="fill_parent" />
+         <ImageView android:id="@id/loadingImage_black" android:background="#ff000000" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="fill_parent" />
+         <LinearLayout android:gravity="center" android:layout_gravity="center" android:orientation="vertical" android:layout_width="wrap_content" android:layout_height="wrap_content">
+             <ProgressBar android:layout_gravity="center_horizontal" android:id="@id/progress_large" android:layout_width="32.0dip" android:layout_height="32.0dip" />
+-            <TextView android:textSize="@com.lge:dimen/type_e01_dp" android:textColor="#ffffffff" android:gravity="center" android:layout_gravity="center_horizontal" android:id="@id/Text_loadingChannel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8.0dip" />
++            <TextView android:textSize="@dimen/type_e01_dp" android:textColor="#ffffffff" android:gravity="center" android:layout_gravity="center_horizontal" android:id="@id/Text_loadingChannel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_marginTop="8.0dip" />
+         </LinearLayout>
+         <ViewStub android:id="@id/stub_left_loading_chlist" android:layout="@layout/left_loading_chlist" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_marginBottom="18.0dip" />
+         <ImageView android:id="@id/chsearch_pannel" android:background="#ff000000" android:layout_width="fill_parent" android:layout_height="fill_parent" />
+diff --git a/res/layout/add_preset_area_list_item.xml b/res/layout/add_preset_area_list_item.xml
+index dc34a93..12362d5 100644
+--- a/res/layout/add_preset_area_list_item.xml
++++ b/res/layout/add_preset_area_list_item.xml
+@@ -1,3 +1,3 @@
+ <?xml version="1.0" encoding="utf-8"?>
+-<TextView android:textSize="@com.lge:dimen/type_d03_sp" android:textColor="?android:textColorPrimary" android:gravity="center_vertical" android:id="@android:id/text1" android:layout_width="fill_parent" android:layout_height="@dimen/listview_small_height" android:paddingStart="@dimen/listview_padding" android:paddingEnd="@dimen/listview_padding"
++<TextView android:textSize="@dimen/type_d03_sp" android:textColor="?android:textColorPrimary" android:gravity="center_vertical" android:id="@android:id/text1" android:layout_width="fill_parent" android:layout_height="@dimen/listview_small_height" android:paddingStart="@dimen/listview_padding" android:paddingEnd="@dimen/listview_padding"
+   xmlns:android="http://schemas.android.com/apk/res/android" />
+\ No newline at end of file
+diff --git a/res/layout/ch_list.xml b/res/layout/ch_list.xml
+index de4a2ab..c76e612 100644
+--- a/res/layout/ch_list.xml
++++ b/res/layout/ch_list.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <FrameLayout android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_weight="1.0"
+   xmlns:android="http://schemas.android.com/apk/res/android">
+-    <GridView android:id="@id/dmbchannel_gridview" android:background="@com.lge:color/list_separator_background_color" android:layout_width="fill_parent" android:layout_height="fill_parent" android:cacheColorHint="#00000000" android:horizontalSpacing="@dimen/chlist_horizontal_spacing" android:verticalSpacing="@dimen/chlist_vertical_spacing" android:numColumns="3" />
++    <GridView android:id="@id/dmbchannel_gridview" android:background="@color/lgeres_list_separator_background_color" android:layout_width="fill_parent" android:layout_height="fill_parent" android:cacheColorHint="#00000000" android:horizontalSpacing="@dimen/chlist_horizontal_spacing" android:verticalSpacing="@dimen/chlist_vertical_spacing" android:numColumns="3" />
+     <LinearLayout android:orientation="vertical" android:id="@id/chlist_empty_layout" android:background="?android:colorBackground" android:layout_width="fill_parent" android:layout_height="fill_parent">
+         <LinearLayout android:gravity="center" android:orientation="vertical" android:id="@id/linearLayout01" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_weight="0.25">
+             <TextView android:gravity="center" android:id="@id/chlist_no_channels" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginLeft="9.299988dip" android:layout_marginRight="9.299988dip" android:layout_marginBottom="8.0dip" android:text="@string/tdmb_msg_nosignal_list" style="@style/tdmb_no_channels" />
+diff --git a/res/layout/favorite_preset_area_list_item.xml b/res/layout/favorite_preset_area_list_item.xml
+index cc79344..675d4c0 100644
+--- a/res/layout/favorite_preset_area_list_item.xml
++++ b/res/layout/favorite_preset_area_list_item.xml
+@@ -1,3 +1,3 @@
+ <?xml version="1.0" encoding="utf-8"?>
+-<CheckedTextView android:textSize="@com.lge:dimen/type_d03_sp" android:textColor="?android:textColorPrimary" android:gravity="center_vertical" android:id="@android:id/text1" android:layout_width="fill_parent" android:layout_height="wrap_content" android:minHeight="?android:listPreferredItemHeightSmall" android:drawablePadding="@dimen/listview_padding" android:drawableStart="?android:listChoiceIndicatorSingle" android:layoutDirection="locale" android:paddingStart="@dimen/listview_padding" android:paddingEnd="@dimen/listview_padding"
++<CheckedTextView android:textSize="@dimen/type_d03_sp" android:textColor="?android:textColorPrimary" android:gravity="center_vertical" android:id="@android:id/text1" android:layout_width="fill_parent" android:layout_height="wrap_content" android:minHeight="?android:listPreferredItemHeightSmall" android:drawablePadding="@dimen/listview_padding" android:drawableStart="?android:listChoiceIndicatorSingle" android:layoutDirection="locale" android:paddingStart="@dimen/listview_padding" android:paddingEnd="@dimen/listview_padding"
+   xmlns:android="http://schemas.android.com/apk/res/android" />
+\ No newline at end of file
+diff --git a/res/layout/left_loading_chlist.xml b/res/layout/left_loading_chlist.xml
+index aa72144..40b71eb 100644
+--- a/res/layout/left_loading_chlist.xml
++++ b/res/layout/left_loading_chlist.xml
+@@ -1,7 +1,7 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <LinearLayout android:layout_gravity="bottom" android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginBottom="17.299988dip"
+   xmlns:android="http://schemas.android.com/apk/res/android">
+-    <TextView android:textSize="@com.lge:dimen/type_d03_sp" android:textColor="#ffa8a8a8" android:ellipsize="end" android:gravity="bottom|center" android:layout_gravity="bottom" android:id="@id/left_chlist_txt01" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginLeft="20.0dip" android:text="@string/left_chlist_txt01" android:singleLine="true" android:layout_weight="1.0" />
+-    <TextView android:textSize="@com.lge:dimen/type_ap01_sp" android:textColor="#ffffffff" android:ellipsize="end" android:gravity="bottom|center" android:layout_gravity="bottom" android:id="@id/left_chlist_txt02" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/left_chlist_txt02" android:singleLine="true" android:layout_weight="1.0" />
+-    <TextView android:textSize="@com.lge:dimen/type_d03_sp" android:textColor="#ffa8a8a8" android:ellipsize="end" android:gravity="bottom|center" android:layout_gravity="bottom" android:id="@id/left_chlist_txt03" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginRight="20.0dip" android:text="@string/left_chlist_txt03" android:singleLine="true" android:layout_weight="1.0" />
++    <TextView android:textSize="@dimen/type_d03_sp" android:textColor="#ffa8a8a8" android:ellipsize="end" android:gravity="bottom|center" android:layout_gravity="bottom" android:id="@id/left_chlist_txt01" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginLeft="20.0dip" android:text="@string/left_chlist_txt01" android:singleLine="true" android:layout_weight="1.0" />
++    <TextView android:textSize="@dimen/type_ap01_sp" android:textColor="#ffffffff" android:ellipsize="end" android:gravity="bottom|center" android:layout_gravity="bottom" android:id="@id/left_chlist_txt02" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/left_chlist_txt02" android:singleLine="true" android:layout_weight="1.0" />
++    <TextView android:textSize="@dimen/type_d03_sp" android:textColor="#ffa8a8a8" android:ellipsize="end" android:gravity="bottom|center" android:layout_gravity="bottom" android:id="@id/left_chlist_txt03" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginRight="20.0dip" android:text="@string/left_chlist_txt03" android:singleLine="true" android:layout_weight="1.0" />
+ </LinearLayout>
+\ No newline at end of file
+diff --git a/res/layout/list_listitem_header.xml b/res/layout/list_listitem_header.xml
+index 248e0ba..6d61aa7 100644
+--- a/res/layout/list_listitem_header.xml
++++ b/res/layout/list_listitem_header.xml
+@@ -1,5 +1,5 @@
+ <?xml version="1.0" encoding="utf-8"?>
+-<LinearLayout android:orientation="vertical" android:background="@com.lge:color/list_separator_background_color" android:layout_width="fill_parent" android:layout_height="wrap_content"
++<LinearLayout android:orientation="vertical" android:background="@color/lgeres_list_separator_background_color" android:layout_width="fill_parent" android:layout_height="wrap_content"
+   xmlns:android="http://schemas.android.com/apk/res/android">
+     <TextView android:id="@id/dateHeader" android:layout_width="fill_parent" android:layout_height="wrap_content" android:singleLine="true" style="?android:listSeparatorTextViewStyle" />
+ </LinearLayout>
+\ No newline at end of file
+diff --git a/res/layout/main.xml b/res/layout/main.xml
+index 7e0f2ad..28d64b8 100644
+--- a/res/layout/main.xml
++++ b/res/layout/main.xml
+@@ -10,7 +10,7 @@
+             </FrameLayout>
+         </LinearLayout>
+         <LinearLayout android:background="?android:colorBackground" android:layout_width="wrap_content" android:layout_height="wrap_content">
+-            <View android:id="@id/view_main_line_txt" android:background="@com.lge:color/list_divider_color" android:visibility="visible" android:layout_width="@dimen/view_main_line_txt_w" android:layout_height="fill_parent" />
++            <View android:id="@id/view_main_line_txt" android:background="@color/lgeres_list_divider_color" android:visibility="visible" android:layout_width="@dimen/view_main_line_txt_w" android:layout_height="fill_parent" />
+         </LinearLayout>
+         <FrameLayout android:id="@id/ch_list_frame" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_weight="1.0">
+             <ViewStub android:id="@id/ch_list" android:layout="@layout/ch_list" android:layout_width="fill_parent" android:layout_height="fill_parent" />
+@@ -25,9 +25,9 @@
+     <LinearLayout android:layout_gravity="bottom" android:orientation="horizontal" android:id="@id/bml_button_frame" android:background="?android:colorPrimary" android:visibility="gone" android:layout_width="fill_parent" android:layout_height="@dimen/bml_button_h">
+         <ImageButton android:id="@id/bml_button_down" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:src="@drawable/svg_ic_menu_down" android:layout_weight="1.0" />
+         <ImageButton android:id="@id/bml_button_up" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:src="@drawable/svg_ic_menu_up" android:layout_weight="1.0" />
+-        <Button android:textSize="@dimen/button_txt" android:textColor="@com.lge:color/action_bar_title_text_color" android:gravity="center" android:id="@id/bml_button_select" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:text="@string/confirm" android:layout_weight="1.0" />
++        <Button android:textSize="@dimen/button_txt" android:textColor="@color/action_bar_title_text_color" android:gravity="center" android:id="@id/bml_button_select" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:text="@string/confirm" android:layout_weight="1.0" />
+         <ImageButton android:id="@id/bml_button_back" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:src="@drawable/svg_ic_menu_back" android:layout_weight="1.0" />
+-        <Button android:textSize="@dimen/button_txt" android:textColor="@com.lge:color/action_bar_title_text_color" android:gravity="center" android:id="@id/bml_button_num" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:text="@string/bml_num" android:layout_weight="1.0" />
++        <Button android:textSize="@dimen/button_txt" android:textColor="@color/action_bar_title_text_color" android:gravity="center" android:id="@id/bml_button_num" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:text="@string/bml_num" android:layout_weight="1.0" />
+     </LinearLayout>
+     <TextView android:layout_gravity="bottom" android:id="@id/bml_button_cover" android:background="#ff000000" android:visibility="invisible" android:layout_width="fill_parent" android:layout_height="@dimen/bml_button_h" />
+     <LinearLayout android:gravity="center|right|top" android:id="@id/touchlock_frame" android:layout_width="fill_parent" android:layout_height="fill_parent">
+diff --git a/res/layout/playerview.xml b/res/layout/playerview.xml
+index d7358dc..d89f046 100644
+--- a/res/layout/playerview.xml
++++ b/res/layout/playerview.xml
+@@ -15,9 +15,9 @@
+     <LinearLayout android:layout_gravity="bottom" android:orientation="horizontal" android:id="@id/bml_button_frame" android:background="?android:colorPrimary" android:layout_width="fill_parent" android:layout_height="@dimen/bml_button_h">
+         <ImageButton android:id="@id/bml_button_down" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:src="@drawable/svg_ic_menu_down" android:layout_weight="1.0" />
+         <ImageButton android:id="@id/bml_button_up" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:src="@drawable/svg_ic_menu_up" android:layout_weight="1.0" />
+-        <Button android:textSize="@dimen/button_txt" android:textColor="@com.lge:color/action_bar_title_text_color" android:gravity="center" android:id="@id/bml_button_select" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:text="@string/confirm" android:layout_weight="1.0" />
++        <Button android:textSize="@dimen/button_txt" android:textColor="@color/action_bar_title_text_color" android:gravity="center" android:id="@id/bml_button_select" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:text="@string/confirm" android:layout_weight="1.0" />
+         <ImageButton android:id="@id/bml_button_back" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:src="@drawable/svg_ic_menu_back" android:layout_weight="1.0" />
+-        <Button android:textSize="@dimen/button_txt" android:textColor="@com.lge:color/action_bar_title_text_color" android:gravity="center" android:id="@id/bml_button_num" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:text="@string/bml_num" android:layout_weight="1.0" />
++        <Button android:textSize="@dimen/button_txt" android:textColor="@color/action_bar_title_text_color" android:gravity="center" android:id="@id/bml_button_num" android:background="@drawable/ripple_effect_general_button" android:layout_width="fill_parent" android:layout_height="fill_parent" android:text="@string/bml_num" android:layout_weight="1.0" />
+     </LinearLayout>
+     <TextView android:layout_gravity="bottom" android:id="@id/bml_button_cover" android:background="#ff000000" android:visibility="invisible" android:layout_width="fill_parent" android:layout_height="@dimen/bml_button_h" />
+     <LinearLayout android:gravity="center|right|top" android:id="@id/touchlock_frame" android:layout_width="fill_parent" android:layout_height="fill_parent">
+diff --git a/res/layout/tv_guide.xml b/res/layout/tv_guide.xml
+index 1f57b71..77600ad 100644
+--- a/res/layout/tv_guide.xml
++++ b/res/layout/tv_guide.xml
+@@ -17,7 +17,7 @@
+     <FrameLayout android:layout_width="wrap_content" android:layout_height="wrap_content">
+         <LinearLayout android:orientation="vertical" android:paddingLeft="@dimen/ch_layout_width" android:layout_width="wrap_content" android:layout_height="fill_parent" android:divider="@drawable/divider_h" android:showDividers="middle">
+             <com.lge.oneseg.view.ObservableHorizontalScrollView android:orientation="horizontal" android:id="@id/time_h_s" android:layout_width="wrap_content" android:layout_height="wrap_content">
+-                <FrameLayout android:background="@com.lge:color/list_separator_background_color" android:layout_width="wrap_content" android:layout_height="wrap_content">
++                <FrameLayout android:background="@color/lgeres_list_separator_background_color" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                     <LinearLayout android:gravity="center_vertical" android:orientation="horizontal" android:id="@id/time_layout" android:layout_width="wrap_content" android:layout_height="@dimen/time_layout_height" />
+                     <ImageView android:id="@id/on_air_icon" android:visibility="invisible" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/channel_onair_icon" />
+                 </FrameLayout>
+@@ -32,9 +32,9 @@
+             </com.lge.oneseg.view.ObservableHorizontalScrollView>
+         </LinearLayout>
+         <LinearLayout android:orientation="vertical" android:layout_width="@dimen/ch_layout_width" android:layout_height="wrap_content" android:divider="@drawable/divider_h" android:showDividers="middle">
+-            <View android:background="@com.lge:color/list_separator_background_color" android:layout_width="fill_parent" android:layout_height="@dimen/time_layout_height" />
++            <View android:background="@color/lgeres_list_separator_background_color" android:layout_width="fill_parent" android:layout_height="@dimen/time_layout_height" />
+             <com.lge.oneseg.view.ObservableScrollView android:id="@id/channel_v_s" android:background="?android:colorPrimary" android:layout_width="fill_parent" android:layout_height="wrap_content">
+-                <LinearLayout android:orientation="vertical" android:id="@id/channel_layout" android:background="@com.lge:color/list_separator_background_color" android:layout_width="fill_parent" android:layout_height="wrap_content" android:divider="@drawable/divider_h" android:showDividers="middle" />
++                <LinearLayout android:orientation="vertical" android:id="@id/channel_layout" android:background="@color/lgeres_list_separator_background_color" android:layout_width="fill_parent" android:layout_height="wrap_content" android:divider="@drawable/divider_h" android:showDividers="middle" />
+             </com.lge.oneseg.view.ObservableScrollView>
+         </LinearLayout>
+         <View android:layout_gravity="bottom" android:background="@color/divider" android:layout_width="fill_parent" android:layout_height="@dimen/divider_depth" />
+diff --git a/res/values-hdpi/dimens.xml b/res/values-hdpi/dimens.xml
+index 740e39b..a89af80 100644
+--- a/res/values-hdpi/dimens.xml
++++ b/res/values-hdpi/dimens.xml
+@@ -4,17 +4,17 @@
+     <dimen name="bml_sliding_handler_h">23.0px</dimen>
+     <dimen name="bottom_button_height">71.5dip</dimen>
+     <dimen name="box_item_h">48.0dip</dimen>
+-    <item type="dimen" name="box_item_name_t_s">@com.lge:dimen/type_e01_sp</item>
++    <item type="dimen" name="box_item_name_t_s">@dimen/type_e01_sp</item>
+     <dimen name="box_item_scrollbar_padding">32.0dip</dimen>
+     <dimen name="box_item_thumb_bg_h">80.0dip</dimen>
+     <dimen name="box_item_thumb_bg_w">80.0dip</dimen>
+     <dimen name="brightness_seekbar_margin_left">10.449982dip</dimen>
+     <dimen name="brightness_seekbar_margin_right">10.449982dip</dimen>
+-    <item type="dimen" name="button_txt">@com.lge:dimen/type_ak02_sp</item>
++    <item type="dimen" name="button_txt">@dimen/type_ak02_sp</item>
+     <dimen name="caption_height">180.0px</dimen>
+     <dimen name="caption_height_fullseg">540.0px</dimen>
+     <dimen name="caption_margin_top">465.0px</dimen>
+-    <item type="dimen" name="caption_textsize">@com.lge:dimen/type_a01_dp</item>
++    <item type="dimen" name="caption_textsize">@dimen/type_a01_dp</item>
+     <dimen name="capture_display_height">180.0px</dimen>
+     <dimen name="capture_display_width">320.0px</dimen>
+     <dimen name="ch_layout_width">88.0dip</dimen>
+@@ -35,10 +35,10 @@
+     <dimen name="day_layout_height">41.0dip</dimen>
+     <dimen name="dialog_padding">24.0dip</dimen>
+     <dimen name="divider_depth">1.0dip</dimen>
+-    <item type="dimen" name="floating_channel_scan_btn_txt">@com.lge:dimen/type_e01_dp</item>
++    <item type="dimen" name="floating_channel_scan_btn_txt">@dimen/type_e01_dp</item>
+     <dimen name="ginga_portrait_default_bottom">280.0px</dimen>
+     <dimen name="ginga_portrait_default_right">480.0px</dimen>
+-    <item type="dimen" name="grid_channel_name_text_size">@com.lge:dimen/type_b01_dp</item>
++    <item type="dimen" name="grid_channel_name_text_size">@dimen/type_b01_dp</item>
+     <dimen name="indi_area_padding">11.0dip</dimen>
+     <dimen name="list_action_popup_min_width">160.0dip</dimen>
+     <dimen name="list_item_h">66.0dip</dimen>
+@@ -47,7 +47,7 @@
+     <dimen name="listview_padding">16.0dip</dimen>
+     <dimen name="listview_small_height">48.0dip</dimen>
+     <dimen name="mode_change_height">460.0px</dimen>
+-    <item type="dimen" name="mtk_color_test_font_size">@com.lge:dimen/type_k01_dp</item>
++    <item type="dimen" name="mtk_color_test_font_size">@dimen/type_k01_dp</item>
+     <dimen name="navi_bar_height">0.0px</dimen>
+     <dimen name="onair_icon_depth">2.0px</dimen>
+     <dimen name="onair_icon_margin">27.0px</dimen>
+diff --git a/res/values-sw800dp-hdpi/styles.xml b/res/values-sw800dp-hdpi/styles.xml
+index 9853d77..1b5b4ba 100644
+--- a/res/values-sw800dp-hdpi/styles.xml
++++ b/res/values-sw800dp-hdpi/styles.xml
+@@ -1,23 +1,23 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+     <style name="channel_name_title">
+-        <item name="android:textSize">@com.lge:dimen/type_d01_dp</item>
++        <item name="android:textSize">@dimen/type_d01_dp</item>
+         <item name="android:textStyle">bold</item>
+         <item name="android:textColor">#ff000000</item>
+     </style>
+     <style name="hig_list_section">
+-        <item name="android:textSize">@com.lge:dimen/type_a02_sp</item>
++        <item name="android:textSize">@dimen/type_a02_sp</item>
+         <item name="android:textStyle">bold</item>
+         <item name="android:textColor">#99000000</item>
+         <item name="android:textAllCaps">true</item>
+     </style>
+     <style name="listview_text_main">
+-        <item name="android:textSize">@com.lge:dimen/type_d03_sp</item>
++        <item name="android:textSize">@dimen/type_d03_sp</item>
+         <item name="android:textStyle">normal</item>
+         <item name="android:textColor">@color/list_text</item>
+     </style>
+     <style name="listview_text_sub">
+-        <item name="android:textSize">@com.lge:dimen/type_b02_sp</item>
++        <item name="android:textSize">@dimen/type_b02_sp</item>
+         <item name="android:textStyle">normal</item>
+         <item name="android:textColor">@color/list_text_sub</item>
+     </style>
+@@ -30,27 +30,27 @@
+         <item name="android:progressTint">#ff4bdbbe</item>
+     </style>
+     <style name="remote_button_number_normal">
+-        <item name="android:textSize">@com.lge:dimen/type_g01_dp</item>
++        <item name="android:textSize">@dimen/type_g01_dp</item>
+         <item name="android:textStyle">bold</item>
+         <item name="android:textColor">#ff000000</item>
+     </style>
+     <style name="remote_channel_name">
+-        <item name="android:textSize">@com.lge:dimen/type_d01_dp</item>
++        <item name="android:textSize">@dimen/type_d01_dp</item>
+         <item name="android:textStyle">normal</item>
+         <item name="android:textColor">#ff000000</item>
+     </style>
+     <style name="remote_channel_number_normal">
+-        <item name="android:textSize">@com.lge:dimen/type_d01_dp</item>
++        <item name="android:textSize">@dimen/type_d01_dp</item>
+         <item name="android:textStyle">bold</item>
+         <item name="android:textColor">?android:colorAccent</item>
+     </style>
+     <style name="tdmb_preview_btn">
+-        <item name="android:textSize">@com.lge:dimen/type_d01_dp</item>
++        <item name="android:textSize">@dimen/type_d01_dp</item>
+         <item name="android:textStyle">normal</item>
+         <item name="android:textColor">#ff000000</item>
+     </style>
+     <style name="listview_text_title">
+-        <item name="android:textSize">@com.lge:dimen/type_d03_sp</item>
++        <item name="android:textSize">@dimen/type_d03_sp</item>
+         <item name="android:textStyle">bold</item>
+         <item name="android:textColor">@color/list_text</item>
+     </style>
+diff --git a/res/values-xhdpi/dimens.xml b/res/values-xhdpi/dimens.xml
+index 01b77de..74a9c29 100644
+--- a/res/values-xhdpi/dimens.xml
++++ b/res/values-xhdpi/dimens.xml
+@@ -4,17 +4,17 @@
+     <dimen name="bml_sliding_handler_h">34.0px</dimen>
+     <dimen name="bottom_button_height">71.5dip</dimen>
+     <dimen name="box_item_h">48.0dip</dimen>
+-    <item type="dimen" name="box_item_name_t_s">@com.lge:dimen/type_e01_sp</item>
++    <item type="dimen" name="box_item_name_t_s">@dimen/type_e01_sp</item>
+     <dimen name="box_item_scrollbar_padding">32.0dip</dimen>
+     <dimen name="box_item_thumb_bg_h">80.0dip</dimen>
+     <dimen name="box_item_thumb_bg_w">80.0dip</dimen>
+     <dimen name="brightness_seekbar_margin_left">10.449982dip</dimen>
+     <dimen name="brightness_seekbar_margin_right">10.449982dip</dimen>
+-    <item type="dimen" name="button_txt">@com.lge:dimen/type_ak02_sp</item>
++    <item type="dimen" name="button_txt">@dimen/type_ak02_sp</item>
+     <dimen name="caption_height">180.0px</dimen>
+     <dimen name="caption_height_fullseg">540.0px</dimen>
+     <dimen name="caption_margin_top">465.0px</dimen>
+-    <item type="dimen" name="caption_textsize">@com.lge:dimen/type_a01_dp</item>
++    <item type="dimen" name="caption_textsize">@dimen/type_a01_dp</item>
+     <dimen name="capture_display_height">360.0px</dimen>
+     <dimen name="capture_display_width">640.0px</dimen>
+     <dimen name="ch_layout_width">88.0dip</dimen>
+@@ -35,10 +35,10 @@
+     <dimen name="day_layout_height">41.0dip</dimen>
+     <dimen name="dialog_padding">24.0dip</dimen>
+     <dimen name="divider_depth">1.0dip</dimen>
+-    <item type="dimen" name="floating_channel_scan_btn_txt">@com.lge:dimen/type_e01_dp</item>
++    <item type="dimen" name="floating_channel_scan_btn_txt">@dimen/type_e01_dp</item>
+     <dimen name="ginga_portrait_default_bottom">450.0px</dimen>
+     <dimen name="ginga_portrait_default_right">720.0px</dimen>
+-    <item type="dimen" name="grid_channel_name_text_size">@com.lge:dimen/type_b01_dp</item>
++    <item type="dimen" name="grid_channel_name_text_size">@dimen/type_b01_dp</item>
+     <dimen name="indi_area_padding">11.0dip</dimen>
+     <dimen name="list_action_popup_min_width">160.0dip</dimen>
+     <dimen name="list_item_h">66.0dip</dimen>
+@@ -47,7 +47,7 @@
+     <dimen name="listview_padding">16.0dip</dimen>
+     <dimen name="listview_small_height">48.0dip</dimen>
+     <dimen name="mode_change_height">460.0px</dimen>
+-    <item type="dimen" name="mtk_color_test_font_size">@com.lge:dimen/type_k01_dp</item>
++    <item type="dimen" name="mtk_color_test_font_size">@dimen/type_k01_dp</item>
+     <dimen name="navi_bar_height">0.0px</dimen>
+     <dimen name="onair_icon_depth">3.0px</dimen>
+     <dimen name="onair_icon_margin">41.0px</dimen>
+diff --git a/res/values-xxhdpi/dimens.xml b/res/values-xxhdpi/dimens.xml
+index a0bf962..c664e1d 100644
+--- a/res/values-xxhdpi/dimens.xml
++++ b/res/values-xxhdpi/dimens.xml
+@@ -4,17 +4,17 @@
+     <dimen name="bml_sliding_handler_h">50.0px</dimen>
+     <dimen name="bottom_button_height">71.5dip</dimen>
+     <dimen name="box_item_h">48.0dip</dimen>
+-    <item type="dimen" name="box_item_name_t_s">@com.lge:dimen/type_e01_sp</item>
++    <item type="dimen" name="box_item_name_t_s">@dimen/type_e01_sp</item>
+     <dimen name="box_item_scrollbar_padding">32.0dip</dimen>
+     <dimen name="box_item_thumb_bg_h">80.0dip</dimen>
+     <dimen name="box_item_thumb_bg_w">80.0dip</dimen>
+     <dimen name="brightness_seekbar_margin_left">10.449982dip</dimen>
+     <dimen name="brightness_seekbar_margin_right">10.449982dip</dimen>
+-    <item type="dimen" name="button_txt">@com.lge:dimen/type_ak02_sp</item>
++    <item type="dimen" name="button_txt">@dimen/type_ak02_sp</item>
+     <dimen name="caption_height">269.0px</dimen>
+     <dimen name="caption_height_fullseg">404.0px</dimen>
+     <dimen name="caption_margin_top">608.0px</dimen>
+-    <item type="dimen" name="caption_textsize">@com.lge:dimen/type_a01_dp</item>
++    <item type="dimen" name="caption_textsize">@dimen/type_a01_dp</item>
+     <dimen name="capture_display_height">540.0px</dimen>
+     <dimen name="capture_display_width">960.0px</dimen>
+     <dimen name="ch_layout_width">88.0dip</dimen>
+@@ -35,10 +35,10 @@
+     <dimen name="day_layout_height">41.0dip</dimen>
+     <dimen name="dialog_padding">24.0dip</dimen>
+     <dimen name="divider_depth">1.0dip</dimen>
+-    <item type="dimen" name="floating_channel_scan_btn_txt">@com.lge:dimen/type_e01_dp</item>
++    <item type="dimen" name="floating_channel_scan_btn_txt">@dimen/type_e01_dp</item>
+     <dimen name="ginga_portrait_default_bottom">675.0px</dimen>
+     <dimen name="ginga_portrait_default_right">1080.0px</dimen>
+-    <item type="dimen" name="grid_channel_name_text_size">@com.lge:dimen/type_b01_dp</item>
++    <item type="dimen" name="grid_channel_name_text_size">@dimen/type_b01_dp</item>
+     <dimen name="indi_area_padding">11.0dip</dimen>
+     <dimen name="list_action_popup_min_width">200.0dip</dimen>
+     <dimen name="list_item_h">55.0dip</dimen>
+@@ -47,7 +47,7 @@
+     <dimen name="listview_padding">16.0dip</dimen>
+     <dimen name="listview_small_height">48.0dip</dimen>
+     <dimen name="mode_change_height">460.0px</dimen>
+-    <item type="dimen" name="mtk_color_test_font_size">@com.lge:dimen/type_k01_dp</item>
++    <item type="dimen" name="mtk_color_test_font_size">@dimen/type_k01_dp</item>
+     <dimen name="navi_bar_height">0.0px</dimen>
+     <dimen name="onair_icon_depth">4.5px</dimen>
+     <dimen name="onair_icon_margin">62.0px</dimen>
+diff --git a/res/values-xxhdpi/lge_res_compat.xml b/res/values-xxhdpi/lge_res_compat.xml
+new file mode 100644
+index 0000000..8ecf098
+--- /dev/null
++++ b/res/values-xxhdpi/lge_res_compat.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++     The five entries lge-res qualifies for xxhdpi. Everything else in
++     values/lge_res_compat.xml is density-independent there as well.
++-->
++<resources>
++    <dimen name="type_a01_dp">10.0dp</dimen>
++    <dimen name="type_b01_dp">12.0dp</dimen>
++    <dimen name="type_b02_dp">13.0dp</dimen>
++    <dimen name="type_b02_sp">13.0sp</dimen>
++    <dimen name="type_d01_dp">18.0dp</dimen>
++</resources>
+diff --git a/res/values-xxxhdpi/dimens.xml b/res/values-xxxhdpi/dimens.xml
+index be02a42..95c4d8e 100644
+--- a/res/values-xxxhdpi/dimens.xml
++++ b/res/values-xxxhdpi/dimens.xml
+@@ -4,17 +4,17 @@
+     <dimen name="bml_sliding_handler_h">65.0px</dimen>
+     <dimen name="bottom_button_height">71.5dip</dimen>
+     <dimen name="box_item_h">48.0dip</dimen>
+-    <item type="dimen" name="box_item_name_t_s">@com.lge:dimen/type_e01_sp</item>
++    <item type="dimen" name="box_item_name_t_s">@dimen/type_e01_sp</item>
+     <dimen name="box_item_scrollbar_padding">32.0dip</dimen>
+     <dimen name="box_item_thumb_bg_h">80.0dip</dimen>
+     <dimen name="box_item_thumb_bg_w">80.0dip</dimen>
+     <dimen name="brightness_seekbar_margin_left">10.449982dip</dimen>
+     <dimen name="brightness_seekbar_margin_right">10.449982dip</dimen>
+-    <item type="dimen" name="button_txt">@com.lge:dimen/type_ak02_sp</item>
++    <item type="dimen" name="button_txt">@dimen/type_ak02_sp</item>
+     <dimen name="caption_height">360.0px</dimen>
+     <dimen name="caption_height_fullseg">540.0px</dimen>
+     <dimen name="caption_margin_top">815.0px</dimen>
+-    <item type="dimen" name="caption_textsize">@com.lge:dimen/type_a01_dp</item>
++    <item type="dimen" name="caption_textsize">@dimen/type_a01_dp</item>
+     <dimen name="capture_display_height">720.0px</dimen>
+     <dimen name="capture_display_width">1280.0px</dimen>
+     <dimen name="ch_layout_width">88.0dip</dimen>
+@@ -35,10 +35,10 @@
+     <dimen name="day_layout_height">41.0dip</dimen>
+     <dimen name="dialog_padding">24.0dip</dimen>
+     <dimen name="divider_depth">1.0dip</dimen>
+-    <item type="dimen" name="floating_channel_scan_btn_txt">@com.lge:dimen/type_e01_dp</item>
++    <item type="dimen" name="floating_channel_scan_btn_txt">@dimen/type_e01_dp</item>
+     <dimen name="ginga_portrait_default_bottom">900.0px</dimen>
+     <dimen name="ginga_portrait_default_right">1440.0px</dimen>
+-    <item type="dimen" name="grid_channel_name_text_size">@com.lge:dimen/type_b01_dp</item>
++    <item type="dimen" name="grid_channel_name_text_size">@dimen/type_b01_dp</item>
+     <dimen name="indi_area_padding">11.0dip</dimen>
+     <dimen name="list_action_popup_min_width">200.0dip</dimen>
+     <dimen name="list_item_h">55.0dip</dimen>
+@@ -47,7 +47,7 @@
+     <dimen name="listview_padding">16.0dip</dimen>
+     <dimen name="listview_small_height">48.0dip</dimen>
+     <dimen name="mode_change_height">460.0px</dimen>
+-    <item type="dimen" name="mtk_color_test_font_size">@com.lge:dimen/type_k01_dp</item>
++    <item type="dimen" name="mtk_color_test_font_size">@dimen/type_k01_dp</item>
+     <dimen name="navi_bar_height">0.0px</dimen>
+     <dimen name="onair_icon_depth">6.0px</dimen>
+     <dimen name="onair_icon_margin">83.0px</dimen>
+diff --git a/res/values/lge_res_compat.xml b/res/values/lge_res_compat.xml
+new file mode 100644
+index 0000000..21727e4
+--- /dev/null
++++ b/res/values/lge_res_compat.xml
+@@ -0,0 +1,71 @@
++<?xml version="1.0" encoding="utf-8"?>
++<!--
++     The stock apk resolves these out of com.lge, the shared resource library
++     that ships as framework/lge-res/lge-res.apk. Nothing links that library in
++     here, so every one of those references stays a TYPE_DYNAMIC_REFERENCE, and
++     the first layout that wants a dimension out of one dies inflating:
++
++       add_preset_area_list_item -> TextView
++       UnsupportedOperationException: Can't convert value at index 2 to
++       dimension: type=0x7
++
++     which is the very first screen an unconfigured install shows, because it
++     goes straight to the area picker. The values below were read back out of
++     the stock library, so the app renders the way it does on stock without the
++     library having to be there.
++
++     Two of the colours carry an lgeres_ prefix: the app already has colours of
++     its own by those names, with different values, and the references that go
++     to com.lge are not the ones that go to the app's own.
++-->
++<resources>
++    <!-- LG's type scale. -->
++    <dimen name="type_a01_dp">12.0dp</dimen>
++    <dimen name="type_a02_sp">12.0sp</dimen>
++    <dimen name="type_b01_dp">14.0dp</dimen>
++    <dimen name="type_b02_dp">14.0dp</dimen>
++    <dimen name="type_b02_sp">14.0sp</dimen>
++    <dimen name="type_d01_dp">16.0dp</dimen>
++    <dimen name="type_d03_dp">16.0dp</dimen>
++    <dimen name="type_d03_sp">16.0sp</dimen>
++    <dimen name="type_e01_dp">18.0dp</dimen>
++    <dimen name="type_e01_sp">18.0sp</dimen>
++    <dimen name="type_f02_sp">20.0sp</dimen>
++    <dimen name="type_g01_dp">24.0dp</dimen>
++    <dimen name="type_k01_dp">10.0dp</dimen>
++    <dimen name="type_ak02_sp">17.0sp</dimen>
++    <dimen name="type_ap01_sp">22.0sp</dimen>
++
++    <!--
++         action_bar_*_text_color are references in lge-res too; these are the
++         literals they land on there, which are not the AOSP colours that share
++         those names.
++    -->
++    <color name="action_bar_title_text_color">#ff262626</color>
++    <color name="action_bar_subtitle_text_color">#ff7f7f7f</color>
++    <color name="lgeres_list_separator_background_color">#fff5f5f5</color>
++    <color name="lgeres_list_divider_color">#ffe1e1e1</color>
++
++    <!--
++         Theme.LGE.White is an empty style over LG's own base theme, so what it
++         contributes is that base. DeviceDefault.Light.DarkActionBar is what the
++         framework already fell back to when the reference did not resolve, and
++         it is the closest AOSP has.
++    -->
++    <style name="Theme.LGE.White" parent="@android:style/Theme.DeviceDefault.Light.DarkActionBar" />
++
++    <!-- Theme.LGE.Default.Translucent sets exactly these three. -->
++    <style name="Theme.LGE.White.Translucent" parent="@style/Theme.LGE.White">
++        <item name="android:windowBackground">@android:color/transparent</item>
++        <item name="android:windowIsTranslucent">true</item>
++        <item name="android:windowContentOverlay">@null</item>
++    </style>
++
++    <!-- ...and its NoTitleBar child drops the title and the action bar. -->
++    <style name="Theme.LGE.White.Translucent.NoTitleBar" parent="@style/Theme.LGE.White.Translucent">
++        <item name="android:windowNoTitle">true</item>
++        <item name="android:windowActionBar">false</item>
++    </style>
++
++    <style name="Widget.Holo.Light.Spinner" parent="@android:style/Widget.Holo.Light.Spinner" />
++</resources>
+diff --git a/res/values/styles.xml b/res/values/styles.xml
+index 69c51c7..54cbce9 100644
+--- a/res/values/styles.xml
++++ b/res/values/styles.xml
+@@ -1,6 +1,6 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <resources>
+-    <style name="NoAnimation" parent="@com.lge:style/Theme.LGE.White">
++    <style name="NoAnimation" parent="@style/Theme.LGE.White">
+         <item name="android:windowBackground">@drawable/trans_background</item>
+         <item name="android:windowNoTitle">false</item>
+         <item name="android:windowContentOverlay">@null</item>
+@@ -9,7 +9,7 @@
+         <item name="android:windowFullscreen">true</item>
+         <item name="android:windowDisablePreview">true</item>
+     </style>
+-    <style name="PlayerActionBarStyle" parent="@com.lge:style/Theme.LGE.White">
++    <style name="PlayerActionBarStyle" parent="@style/Theme.LGE.White">
+         <item name="android:actionOverflowButtonStyle">@style/PlayerOverflowButtonStyle</item>
+     </style>
+     <style name="PlayerOverflowButtonStyle">
+@@ -17,8 +17,8 @@
+         <item name="android:tint">@color/white</item>
+     </style>
+     <style name="TextAppearance" parent="@android:style/TextAppearance" />
+-    <style name="TextAppearance.EditEvent_Spinner" parent="@com.lge:style/Widget.Holo.Light.Spinner">
+-        <item name="android:textSize">@com.lge:dimen/type_d03_sp</item>
++    <style name="TextAppearance.EditEvent_Spinner" parent="@style/Widget.Holo.Light.Spinner">
++        <item name="android:textSize">@dimen/type_d03_sp</item>
+         <item name="android:textColor">?android:textColorPrimary</item>
+     </style>
+     <style name="TextAppearance.EditEvent_SpinnerButton" parent="@style/TextAppearance.EditEvent_Spinner">
+@@ -56,7 +56,7 @@
+     <style name="btn_name">
+         <item name="android:textSize">13.0sp</item>
+         <item name="android:textStyle">bold</item>
+-        <item name="android:textColor">@com.lge:color/action_bar_title_text_color</item>
++        <item name="android:textColor">@color/action_bar_title_text_color</item>
+         <item name="android:includeFontPadding">false</item>
+     </style>
+     <style name="channel_bar_text">
+@@ -74,17 +74,17 @@
+     <style name="general_title_bar_1line_l">
+         <item name="android:textSize">18.0dip</item>
+         <item name="android:textStyle">normal</item>
+-        <item name="android:textColor">@com.lge:color/action_bar_title_text_color</item>
++        <item name="android:textColor">@color/action_bar_title_text_color</item>
+         <item name="android:includeFontPadding">false</item>
+     </style>
+     <style name="general_title_bar_sub_title_l">
+         <item name="android:textSize">14.0dip</item>
+         <item name="android:textStyle">normal</item>
+-        <item name="android:textColor">@com.lge:color/action_bar_subtitle_text_color</item>
++        <item name="android:textColor">@color/action_bar_subtitle_text_color</item>
+         <item name="android:includeFontPadding">false</item>
+     </style>
+     <style name="hig_list_section">
+-        <item name="android:textSize">@com.lge:dimen/type_a02_sp</item>
++        <item name="android:textSize">@dimen/type_a02_sp</item>
+         <item name="android:textStyle">bold</item>
+         <item name="android:textColor">?android:colorAccent</item>
+         <item name="android:includeFontPadding">false</item>
+@@ -98,7 +98,7 @@
+         <item name="android:includeFontPadding">true</item>
+     </style>
+     <style name="hig_tab_to_add">
+-        <item name="android:textSize">@com.lge:dimen/type_d03_sp</item>
++        <item name="android:textSize">@dimen/type_d03_sp</item>
+         <item name="android:textStyle">normal</item>
+         <item name="android:textColor">?android:textColorSecondary</item>
+     </style>
+@@ -115,17 +115,17 @@
+         <item name="android:includeFontPadding">false</item>
+     </style>
+     <style name="listview_text_main">
+-        <item name="android:textSize">@com.lge:dimen/type_d03_sp</item>
++        <item name="android:textSize">@dimen/type_d03_sp</item>
+         <item name="android:textStyle">normal</item>
+         <item name="android:textColor">?android:textColorPrimary</item>
+     </style>
+     <style name="listview_text_sub">
+-        <item name="android:textSize">@com.lge:dimen/type_b02_sp</item>
++        <item name="android:textSize">@dimen/type_b02_sp</item>
+         <item name="android:textStyle">normal</item>
+         <item name="android:textColor">?android:textColorSecondary</item>
+     </style>
+     <style name="loading_channel_text">
+-        <item name="android:textSize">@com.lge:dimen/type_d03_dp</item>
++        <item name="android:textSize">@dimen/type_d03_dp</item>
+         <item name="android:textStyle">normal</item>
+         <item name="android:textColor">#ffffffff</item>
+         <item name="android:includeFontPadding">false</item>
+@@ -159,7 +159,7 @@
+         <item name="android:includeFontPadding">false</item>
+     </style>
+     <style name="remote_button_number_normal">
+-        <item name="android:textSize">@com.lge:dimen/type_e01_dp</item>
++        <item name="android:textSize">@dimen/type_e01_dp</item>
+         <item name="android:textStyle">bold</item>
+         <item name="android:textColor">@drawable/tdmb_button_color</item>
+         <item name="android:includeFontPadding">false</item>
+@@ -171,13 +171,13 @@
+         <item name="android:includeFontPadding">false</item>
+     </style>
+     <style name="remote_channel_number_normal">
+-        <item name="android:textSize">@com.lge:dimen/type_b02_dp</item>
++        <item name="android:textSize">@dimen/type_b02_dp</item>
+         <item name="android:textStyle">bold</item>
+         <item name="android:textColor">?android:colorAccent</item>
+         <item name="android:includeFontPadding">false</item>
+     </style>
+     <style name="reservationBottonStyle">
+-        <item name="android:textSize">@com.lge:dimen/type_d03_sp</item>
++        <item name="android:textSize">@dimen/type_d03_sp</item>
+         <item name="android:textColor">?android:textColorPrimary</item>
+         <item name="android:background">@drawable/ripple_effect_reservation_sui_btn</item>
+         <item name="android:textAlignment">center</item>
+@@ -189,7 +189,7 @@
+         <item name="android:includeFontPadding">false</item>
+     </style>
+     <style name="reservation_repeat_default">
+-        <item name="android:textSize">@com.lge:dimen/type_d03_dp</item>
++        <item name="android:textSize">@dimen/type_d03_dp</item>
+         <item name="android:textStyle">bold</item>
+         <item name="android:textColor">@color/reservation_repeat_btn_text_color</item>
+         <item name="android:ellipsize">end</item>
+@@ -225,7 +225,7 @@
+         <item name="android:includeFontPadding">false</item>
+     </style>
+     <style name="tdmb_floating_title">
+-        <item name="android:textSize">@com.lge:dimen/type_d03_sp</item>
++        <item name="android:textSize">@dimen/type_d03_sp</item>
+         <item name="android:textStyle">normal</item>
+         <item name="android:textColor">?android:textColorPrimary</item>
+         <item name="android:includeFontPadding">false</item>
+@@ -255,7 +255,7 @@
+         <item name="android:includeFontPadding">false</item>
+     </style>
+     <style name="tdmb_no_channels">
+-        <item name="android:textSize">@com.lge:dimen/type_f02_sp</item>
++        <item name="android:textSize">@dimen/type_f02_sp</item>
+         <item name="android:textStyle">bold</item>
+         <item name="android:textColor">?android:textColorPrimary</item>
+         <item name="android:includeFontPadding">false</item>
+@@ -279,7 +279,7 @@
+         <item name="android:includeFontPadding">false</item>
+     </style>
+     <style name="tdmb_rigth_list_info">
+-        <item name="android:textSize">@com.lge:dimen/type_d03_dp</item>
++        <item name="android:textSize">@dimen/type_d03_dp</item>
+         <item name="android:textStyle">normal</item>
+         <item name="android:textColor">?android:textColorPrimary</item>
+         <item name="android:includeFontPadding">false</item>
+@@ -292,7 +292,7 @@
+         <item name="android:includeFontPadding">false</item>
+     </style>
+     <style name="tdmb_switching_channel_searching">
+-        <item name="android:textSize">@com.lge:dimen/type_d03_dp</item>
++        <item name="android:textSize">@dimen/type_d03_dp</item>
+         <item name="android:textStyle">normal</item>
+         <item name="android:textColor">#ffffffff</item>
+         <item name="android:includeFontPadding">false</item>
