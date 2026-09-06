@@ -1,3 +1,29 @@
+diff --git a/smali/com/lge/hiddenmenu/LCD/LCDAlwaysOn.smali b/smali/com/lge/hiddenmenu/LCD/LCDAlwaysOn.smali
+index da0f8c3..127925a 100644
+--- a/smali/com/lge/hiddenmenu/LCD/LCDAlwaysOn.smali
++++ b/smali/com/lge/hiddenmenu/LCD/LCDAlwaysOn.smali
+@@ -184,9 +184,7 @@
+ 
+     move-result-object v0
+ 
+-    invoke-virtual {v0, v2}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x1
+ 
+     if-ne v0, v3, :cond_0
+ 
+@@ -234,9 +232,7 @@
+ 
+     move-result-object v0
+ 
+-    invoke-virtual {v0, v2}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const v0, 0x1
+ 
+     if-ne v0, v3, :cond_2
+ 
 diff --git a/smali/com/lge/hiddenmenu/LCD/LCDMain.smali b/smali/com/lge/hiddenmenu/LCD/LCDMain.smali
 index cff1a54..ea279d2 100644
 --- a/smali/com/lge/hiddenmenu/LCD/LCDMain.smali
@@ -29,7 +55,7 @@ index 9f21c9a..d6053d9 100644
      iput-boolean v3, p0, Lcom/lge/hiddenmenu/LCD/lcd_test/AODAfterImageTest;->useMipi:Z
  
 diff --git a/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImage2Test.smali b/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImage2Test.smali
-index 6c27b1f..65885e0 100644
+index 6c27b1f..7cdf777 100644
 --- a/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImage2Test.smali
 +++ b/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImage2Test.smali
 @@ -44,9 +44,7 @@
@@ -43,8 +69,19 @@ index 6c27b1f..65885e0 100644
  
      sput-boolean v0, Lcom/lge/hiddenmenu/LCD/lcd_test/AfterImage2Test;->HAS_EXTENDED_LCD:Z
  
+@@ -197,9 +195,7 @@
+ 
+     const v1, 0x20c00f4
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/LCD/lcd_test/AfterImage2Test;->mExtHeight:I
+ 
 diff --git a/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImageTest.smali b/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImageTest.smali
-index 20b0757..70c3db3 100644
+index 20b0757..07d62c9 100644
 --- a/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImageTest.smali
 +++ b/smali/com/lge/hiddenmenu/LCD/lcd_test/AfterImageTest.smali
 @@ -48,9 +48,7 @@
@@ -57,6 +94,17 @@ index 20b0757..70c3db3 100644
 +    const v0, 0x0
  
      sput-boolean v0, Lcom/lge/hiddenmenu/LCD/lcd_test/AfterImageTest;->HAS_EXTENDED_LCD:Z
+ 
+@@ -269,9 +267,7 @@
+ 
+     const v1, 0x20c00f4
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/LCD/lcd_test/AfterImageTest;->mExtHeight:I
  
 diff --git a/smali/com/lge/hiddenmenu/LCD/lcd_test/LCDTest.smali b/smali/com/lge/hiddenmenu/LCD/lcd_test/LCDTest.smali
 index 98ada78..be5324c 100644
@@ -74,7 +122,7 @@ index 98ada78..be5324c 100644
      iput-boolean v0, p0, Lcom/lge/hiddenmenu/LCD/lcd_test/LCDTest;->mUsingDozeDisplayStateForAOD:Z
  
 diff --git a/smali/com/lge/hiddenmenu/LCD/lcd_test/LcdAutoManualTest.smali b/smali/com/lge/hiddenmenu/LCD/lcd_test/LcdAutoManualTest.smali
-index 8edba7b..cbdd357 100644
+index 8edba7b..98020b9 100644
 --- a/smali/com/lge/hiddenmenu/LCD/lcd_test/LcdAutoManualTest.smali
 +++ b/smali/com/lge/hiddenmenu/LCD/lcd_test/LcdAutoManualTest.smali
 @@ -48,9 +48,7 @@
@@ -88,8 +136,30 @@ index 8edba7b..cbdd357 100644
  
      sput-boolean v0, Lcom/lge/hiddenmenu/LCD/lcd_test/LcdAutoManualTest;->HAS_CONE:Z
  
+@@ -192,9 +190,7 @@
+ 
+     const v2, 0x20c00f5
+ 
+-    invoke-virtual {v1, v2}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v1
++    const v1, 0x0
+ 
+     iput v1, p0, Lcom/lge/hiddenmenu/LCD/lcd_test/LcdAutoManualTest;->mConeWidth:I
+ 
+@@ -205,9 +201,7 @@
+ 
+     const v2, 0x20c00f4
+ 
+-    invoke-virtual {v1, v2}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v1
++    const v1, 0x0
+ 
+     iput v1, p0, Lcom/lge/hiddenmenu/LCD/lcd_test/LcdAutoManualTest;->mConeHeight:I
+ 
 diff --git a/smali/com/lge/hiddenmenu/LCD/lcd_test/MuraTest.smali b/smali/com/lge/hiddenmenu/LCD/lcd_test/MuraTest.smali
-index b800cff..9f11edd 100644
+index b800cff..3f664d4 100644
 --- a/smali/com/lge/hiddenmenu/LCD/lcd_test/MuraTest.smali
 +++ b/smali/com/lge/hiddenmenu/LCD/lcd_test/MuraTest.smali
 @@ -42,9 +42,7 @@
@@ -102,6 +172,28 @@ index b800cff..9f11edd 100644
 +    const v0, 0x0
  
      sput-boolean v0, Lcom/lge/hiddenmenu/LCD/lcd_test/MuraTest;->HAS_CONE:Z
+ 
+@@ -171,9 +169,7 @@
+ 
+     const v1, 0x20c00f5
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/LCD/lcd_test/MuraTest;->mConeWidth:I
+ 
+@@ -184,9 +180,7 @@
+ 
+     const v1, 0x20c00f4
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/LCD/lcd_test/MuraTest;->mConeHeight:I
  
 diff --git a/smali/com/lge/hiddenmenu/LED/LEDMain.smali b/smali/com/lge/hiddenmenu/LED/LEDMain.smali
 index ce4d3e7..874cba0 100644
@@ -226,6 +318,140 @@ index ad242b8..2142b59 100644
  
      .line 97
      .local v1, "support":Z
+diff --git a/smali/com/lge/hiddenmenu/Touch/BlockTouchTest.smali b/smali/com/lge/hiddenmenu/Touch/BlockTouchTest.smali
+index 5aaa379..671d65a 100644
+--- a/smali/com/lge/hiddenmenu/Touch/BlockTouchTest.smali
++++ b/smali/com/lge/hiddenmenu/Touch/BlockTouchTest.smali
+@@ -167,9 +167,7 @@
+ 
+     const v1, 0x20c00f5
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/Touch/BlockTouchTest;->mConeWidth:I
+ 
+@@ -180,9 +178,7 @@
+ 
+     const v1, 0x20c00f4
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/Touch/BlockTouchTest;->mConeHeight:I
+ 
+diff --git a/smali/com/lge/hiddenmenu/Touch/DotFingerPaint.smali b/smali/com/lge/hiddenmenu/Touch/DotFingerPaint.smali
+index 4740061..b79b0e9 100644
+--- a/smali/com/lge/hiddenmenu/Touch/DotFingerPaint.smali
++++ b/smali/com/lge/hiddenmenu/Touch/DotFingerPaint.smali
+@@ -89,9 +89,7 @@
+ 
+     const v1, 0x20c00f4
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/Touch/DotFingerPaint;->mConeHeight:I
+ 
+diff --git a/smali/com/lge/hiddenmenu/Touch/FingerPaint.smali b/smali/com/lge/hiddenmenu/Touch/FingerPaint.smali
+index 335ecc4..d99ee50 100644
+--- a/smali/com/lge/hiddenmenu/Touch/FingerPaint.smali
++++ b/smali/com/lge/hiddenmenu/Touch/FingerPaint.smali
+@@ -119,9 +119,7 @@
+ 
+     const v1, 0x20c00f4
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/Touch/FingerPaint;->mConeHeight:I
+ 
+diff --git a/smali/com/lge/hiddenmenu/Touch/GridTouchColorChange.smali b/smali/com/lge/hiddenmenu/Touch/GridTouchColorChange.smali
+index da15e27..d855787 100644
+--- a/smali/com/lge/hiddenmenu/Touch/GridTouchColorChange.smali
++++ b/smali/com/lge/hiddenmenu/Touch/GridTouchColorChange.smali
+@@ -119,9 +119,7 @@
+ 
+     const v1, 0x20c00f5
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/Touch/GridTouchColorChange;->mConeWidth:I
+ 
+@@ -132,9 +130,7 @@
+ 
+     const v1, 0x20c00f4
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/Touch/GridTouchColorChange;->mConeHeight:I
+ 
+diff --git a/smali/com/lge/hiddenmenu/Touch/GridTouchTest.smali b/smali/com/lge/hiddenmenu/Touch/GridTouchTest.smali
+index ac5a395..58530d7 100644
+--- a/smali/com/lge/hiddenmenu/Touch/GridTouchTest.smali
++++ b/smali/com/lge/hiddenmenu/Touch/GridTouchTest.smali
+@@ -119,9 +119,7 @@
+ 
+     const v1, 0x20c00f5
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/Touch/GridTouchTest;->mConeWidth:I
+ 
+@@ -132,9 +130,7 @@
+ 
+     const v1, 0x20c00f4
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/Touch/GridTouchTest;->mConeHeight:I
+ 
+diff --git a/smali/com/lge/hiddenmenu/Touch/KeyTouchSensingTest.smali b/smali/com/lge/hiddenmenu/Touch/KeyTouchSensingTest.smali
+index 48c0872..c7c8e4c 100644
+--- a/smali/com/lge/hiddenmenu/Touch/KeyTouchSensingTest.smali
++++ b/smali/com/lge/hiddenmenu/Touch/KeyTouchSensingTest.smali
+@@ -285,9 +285,7 @@
+ 
+     const v1, 0x20c00f5
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/Touch/KeyTouchSensingTest;->mConeWidth:I
+ 
+@@ -298,9 +296,7 @@
+ 
+     const v1, 0x20c00f4
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/Touch/KeyTouchSensingTest;->mConeHeight:I
+ 
 diff --git a/smali/com/lge/hiddenmenu/Touch/LPWGAutoTouchTest.smali b/smali/com/lge/hiddenmenu/Touch/LPWGAutoTouchTest.smali
 index f8c2a02..d2c474c 100644
 --- a/smali/com/lge/hiddenmenu/Touch/LPWGAutoTouchTest.smali
@@ -240,6 +466,47 @@ index f8c2a02..d2c474c 100644
 +    const v0, 0x0
  
      sput-boolean v0, Lcom/lge/hiddenmenu/Touch/LPWGAutoTouchTest;->HAS_CONE:Z
+ 
+diff --git a/smali/com/lge/hiddenmenu/Touch/MultiTouchTest.smali b/smali/com/lge/hiddenmenu/Touch/MultiTouchTest.smali
+index 81b69b7..5e4fab7 100644
+--- a/smali/com/lge/hiddenmenu/Touch/MultiTouchTest.smali
++++ b/smali/com/lge/hiddenmenu/Touch/MultiTouchTest.smali
+@@ -86,9 +86,7 @@
+ 
+     const v1, 0x20c00f4
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/Touch/MultiTouchTest;->mConeHeight:I
+ 
+diff --git a/smali/com/lge/hiddenmenu/Touch/TouchSensingTest.smali b/smali/com/lge/hiddenmenu/Touch/TouchSensingTest.smali
+index 5e1c01a..793f59c 100644
+--- a/smali/com/lge/hiddenmenu/Touch/TouchSensingTest.smali
++++ b/smali/com/lge/hiddenmenu/Touch/TouchSensingTest.smali
+@@ -282,9 +282,7 @@
+ 
+     const v1, 0x20c00f5
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/Touch/TouchSensingTest;->mConeWidth:I
+ 
+@@ -295,9 +293,7 @@
+ 
+     const v1, 0x20c00f4
+ 
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getDimensionPixelSize(I)I
+-
+-    move-result v0
++    const v0, 0x0
+ 
+     iput v0, p0, Lcom/lge/hiddenmenu/Touch/TouchSensingTest;->mConeHeight:I
  
 diff --git a/smali/com/lge/hiddenmenu/Touch/TouchSetting.smali b/smali/com/lge/hiddenmenu/Touch/TouchSetting.smali
 index 69be901..951bf6b 100644
