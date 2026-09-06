@@ -7,3 +7,6 @@ allow system_app broadcast_isdbt_device:chr_file rw_file_perms;
 # com.lge.oneseg reaches the tuner through lgemtvserver's "broadcast.dmb".
 allow system_app mtv_service:service_manager find;
 binder_call(system_app, lgemtvserver)
+
+# The hidden menu is a system app and owns the lge_prop namespace outright.
+set_prop(system_app, lge_prop)

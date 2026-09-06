@@ -1,9 +1,0 @@
-# nfc publishes the service...
-add_service(nfc, felica_service)
-
-# ...and the mobile felica client looks it up. Narrow to the two domains a
-# system app can land in: appdomain would take isolated_app and the vendor app
-# domains with it, which two separate neverallows forbid - vendor apps are held
-# to stable public services, and isolated_app to almost nothing.
-allow priv_app felica_service:service_manager find;
-allow platform_app felica_service:service_manager find;

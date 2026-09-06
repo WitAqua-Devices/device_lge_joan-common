@@ -1,0 +1,5 @@
+# lge_prop was default_prop before it had a type of its own, and every
+# coredomain could read that: LGJDMB alone reads six of them (the hifi DAC
+# route, the A2DP pair, the brightness config, DSDP, the FM module). Only the
+# write is being narrowed, to the system uid whose apps own the namespace.
+get_prop(coredomain, lge_prop)
