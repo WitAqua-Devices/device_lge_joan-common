@@ -1,0 +1,42 @@
+Build the AudioManagerEx rather than casting to it
+
+TdmbAudioManager asks for the audio system service twice: once as an
+AudioManager, and once as LG's AudioManagerEx. On stock the second cast
+works because LG registers their subclass under "audio"; here the platform
+hands back a plain AudioManager and the cast throws, in a constructor
+nobody guards:
+
+  ClassCastException: android.media.AudioManager cannot be cast to
+    android.media.AudioManagerEx
+      at com.lge.oneseg.util.TdmbAudioManager.<init>(TdmbAudioManager.java:25)
+      at com.lge.oneseg.TdmbFullScreenActivity.onCreate
+
+Replacing the service lookup with a constructor call gets the same object
+without touching how the platform registers its own: AudioManagerEx derives
+from AudioManager and takes a Context, exactly as it does on stock, so the
+field ends up holding what the rest of the class expects.
+
+diff --git a/smali/com/lge/oneseg/util/TdmbAudioManager.smali b/smali/com/lge/oneseg/util/TdmbAudioManager.smali
+index 1dda899..e6723d1 100644
+--- a/smali/com/lge/oneseg/util/TdmbAudioManager.smali
++++ b/smali/com/lge/oneseg/util/TdmbAudioManager.smali
+@@ -43,16 +43,12 @@
+ 
+     iput-object v0, p0, Lcom/lge/oneseg/util/TdmbAudioManager;->mAudioManager:Landroid/media/AudioManager;
+ 
+-    const-string v0, "audio"
+-
+     .line 25
+-    invoke-virtual {p1, v0}, Landroid/content/Context;->getSystemService(Ljava/lang/String;)Ljava/lang/Object;
++    new-instance v0, Landroid/media/AudioManagerEx;
+ 
+-    move-result-object p1
+-
+-    check-cast p1, Landroid/media/AudioManagerEx;
++    invoke-direct {v0, p1}, Landroid/media/AudioManagerEx;-><init>(Landroid/content/Context;)V
+ 
+-    iput-object p1, p0, Lcom/lge/oneseg/util/TdmbAudioManager;->mAudioManagerEx:Landroid/media/AudioManagerEx;
++    iput-object v0, p0, Lcom/lge/oneseg/util/TdmbAudioManager;->mAudioManagerEx:Landroid/media/AudioManagerEx;
+ 
+     .line 26
+     new-instance p1, Landroid/media/AudioAttributes$Builder;

@@ -1,0 +1,257 @@
+Follow the platform APIs that moved out from under it
+
+Four calls the app makes into android.* no longer resolve. None of them is
+LG's own: they are platform APIs that changed or went away between android 9
+and 15, and every one of them throws an Error rather than the Exception the
+surrounding try/catch is written for.
+
+  IWindowManager.hasNavigationBar()      -> takes a display id now
+  IWindowManager.getNavBarPosition()     -> gone entirely, no replacement
+  DisplayManager.setTemporaryBrightness  -> now setBrightness(int, float)
+  NotificationChannel.blockFields        -> the platform calls it lockFields
+  WindowManager.LayoutParams.bypassKeyFlags -> LG's field, never existed here
+
+hasNavigationBar and lockFields are the same call under a new shape, so they
+are rewritten rather than dropped: the constants the channel is handed - 4,
+0x10, 0x20, 0x80 - are USER_LOCKED_IMPORTANCE, VIBRATION, SOUND and
+SHOW_BADGE, which is what lockFields takes.
+
+getNavigationBarPosition returns the -1 its own catch clause returns, which
+the caller reads as "not on either side" and lays out without side padding -
+right for a bar along the bottom, and for gesture navigation.
+
+setTemporaryBrightness took 0-255 for the default display; setBrightness
+takes 0..1. The conversion is obvious but a wrong one blacks out the screen
+mid-programme, so the call is dropped instead: the in-app brightness slider
+does nothing and the screen stays where the system put it.
+
+bypassKeyFlags is LG's own field on LayoutParams, ORed and masked in
+eighteen places to let the test screens swallow the hardware keys. Nothing
+reads it here, so the read-modify-writes go; the keys behave normally.
+
+diff --git a/smali/com/lge/oneseg/constants/Setter.smali b/smali/com/lge/oneseg/constants/Setter.smali
+index 014d1ef..5253409 100644
+--- a/smali/com/lge/oneseg/constants/Setter.smali
++++ b/smali/com/lge/oneseg/constants/Setter.smali
+@@ -45,7 +45,9 @@
+     if-eqz v0, :cond_0
+ 
+     .line 35
+-    invoke-interface {v0}, Landroid/view/IWindowManager;->hasNavigationBar()Z
++    sget v1, Landroid/view/Display;->DEFAULT_DISPLAY:I
++
++    invoke-interface {v0, v1}, Landroid/view/IWindowManager;->hasNavigationBar(I)Z
+ 
+     move-result v0
+ 
+diff --git a/smali/com/lge/oneseg/util/NaviBarUtility.smali b/smali/com/lge/oneseg/util/NaviBarUtility.smali
+index ec0aa2d..9cc741a 100644
+--- a/smali/com/lge/oneseg/util/NaviBarUtility.smali
++++ b/smali/com/lge/oneseg/util/NaviBarUtility.smali
+@@ -46,9 +46,7 @@
+     move-result-object p0
+ 
+     .line 188
+-    invoke-interface {p0}, Landroid/view/IWindowManager;->getNavBarPosition()I
+-
+-    move-result p0
++    const/4 p0, -0x1
+     :try_end_0
+     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+ 
+@@ -238,49 +236,19 @@
+     invoke-direct {p0, p1}, Landroid/content/Intent;-><init>(Ljava/lang/String;)V
+ 
+     .line 159
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    or-int/lit8 p1, p1, 0x2
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 160
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    or-int/lit8 p1, p1, 0x10
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 161
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    or-int/lit8 p1, p1, 0x40
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     goto :goto_1
+ 
+     .line 164
+     :cond_1
+-    iget p0, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    and-int/lit8 p0, p0, -0x3
+-
+-    iput p0, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 165
+-    iget p0, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    and-int/lit8 p0, p0, -0x11
+-
+-    iput p0, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 166
+-    iget p0, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    and-int/lit8 p0, p0, -0x41
+-
+-    iput p0, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 167
+     new-instance p0, Landroid/content/Intent;
+@@ -356,50 +324,16 @@
+     if-eqz p1, :cond_0
+ 
+     .line 115
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    or-int/lit8 p1, p1, 0x2
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 116
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    or-int/lit8 p1, p1, 0x10
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 117
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    or-int/lit8 p1, p1, 0x20
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 118
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    const/high16 p2, 0x8000000
+-
+-    or-int/2addr p1, p2
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 119
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    const/high16 p2, 0x10000000
+-
+-    or-int/2addr p1, p2
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 120
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    or-int/lit8 p1, p1, 0x40
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 121
+     new-instance p1, Landroid/content/Intent;
+@@ -419,50 +353,16 @@
+ 
+     .line 125
+     :cond_0
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    and-int/lit8 p1, p1, -0x3
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 126
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    and-int/lit8 p1, p1, -0x11
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 127
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    and-int/lit8 p1, p1, -0x21
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 128
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    const v2, -0x8000001
+-
+-    and-int/2addr p1, v2
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 129
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    const v2, -0x10000001
+-
+-    and-int/2addr p1, v2
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 130
+-    iget p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+-
+-    and-int/lit8 p1, p1, -0x41
+-
+-    iput p1, v1, Landroid/view/WindowManager$LayoutParams;->bypassKeyFlags:I
+ 
+     .line 131
+     new-instance p1, Landroid/content/Intent;
+diff --git a/smali/com/lge/oneseg/util/BrightnessUtility.smali b/smali/com/lge/oneseg/util/BrightnessUtility.smali
+index 9048549..10bccd6 100644
+--- a/smali/com/lge/oneseg/util/BrightnessUtility.smali
++++ b/smali/com/lge/oneseg/util/BrightnessUtility.smali
+@@ -1058,8 +1058,6 @@
+ 
+     invoke-static {p0, p2}, Lcom/lge/oneseg/util/TdmbLog;->d(Ljava/lang/String;Ljava/lang/String;)V
+ 
+-    .line 136
+-    invoke-virtual {v1, p1}, Landroid/hardware/display/DisplayManager;->setTemporaryBrightness(I)V
+     :try_end_2
+     .catch Ljava/lang/Exception; {:try_start_2 .. :try_end_2} :catch_1
+ 
+diff --git a/smali/com/lge/oneseg/util/TdmbUtility.smali b/smali/com/lge/oneseg/util/TdmbUtility.smali
+index 44a429e..d32cae9 100644
+--- a/smali/com/lge/oneseg/util/TdmbUtility.smali
++++ b/smali/com/lge/oneseg/util/TdmbUtility.smali
+@@ -736,22 +736,22 @@
+     const/4 v1, 0x4
+ 
+     .line 723
+-    invoke-virtual {v0, v1}, Landroid/app/NotificationChannel;->blockFields(I)V
++    invoke-virtual {v0, v1}, Landroid/app/NotificationChannel;->lockFields(I)V
+ 
+     const/16 v1, 0x10
+ 
+     .line 724
+-    invoke-virtual {v0, v1}, Landroid/app/NotificationChannel;->blockFields(I)V
++    invoke-virtual {v0, v1}, Landroid/app/NotificationChannel;->lockFields(I)V
+ 
+     const/16 v1, 0x20
+ 
+     .line 725
+-    invoke-virtual {v0, v1}, Landroid/app/NotificationChannel;->blockFields(I)V
++    invoke-virtual {v0, v1}, Landroid/app/NotificationChannel;->lockFields(I)V
+ 
+     const/16 v1, 0x80
+ 
+     .line 726
+-    invoke-virtual {v0, v1}, Landroid/app/NotificationChannel;->blockFields(I)V
++    invoke-virtual {v0, v1}, Landroid/app/NotificationChannel;->lockFields(I)V
+ 
+     .line 727
+     invoke-virtual {v0, p0}, Landroid/app/NotificationChannel;->setShowBadge(Z)V
