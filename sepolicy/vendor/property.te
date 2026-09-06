@@ -7,3 +7,14 @@ vendor_public_prop(vendor_camera_prop);
 vendor_public_prop(vendor_fp_prop);
 
 type vendor_timekeep_prop, vendor_property_type, property_type;
+
+# The build identity LG's apps read out of ro.vendor.lge: which operator and
+# market the image was built for, and the software version. It was
+# vendor_default_prop, which an app cannot read at all, and the hidden menu
+# branches on the operator in 36 places.
+#
+# Every domain keeps the read. rild and the rest of the vendor side name these
+# 28 times, init.qcom.sh included, and all of them could already see them as
+# vendor_default_prop - this is not widening that, it is not losing it.
+vendor_public_prop(vendor_lge_build_prop);
+get_prop(domain, vendor_lge_build_prop)
