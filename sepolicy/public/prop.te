@@ -1,1 +1,7 @@
 system_public_prop(baseband_prop);
+
+# The LG apps share the system uid and keep their own switches under
+# persist.product.lge and product.lge. Nothing declares them, so every one of
+# them lands on default_prop, which system_app cannot write: the hidden menu
+# died on its first setprop at every boot, and none of its toggles stuck.
+system_public_prop(lge_prop);
