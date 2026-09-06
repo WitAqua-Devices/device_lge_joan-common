@@ -12,6 +12,13 @@ package com.lge.systemservice.core;
  */
 public class LGPowerManagerHelper {
 
+    /**
+     * Drives the second display on the V30's extended-LCD panels. joan's panel
+     * has none, and the hidden menu calls this unconditionally.
+     */
+    public void changeDisplayModeForExtendedLcd(boolean enabled) {
+    }
+
     public void turnOffThermald() {
     }
 }
