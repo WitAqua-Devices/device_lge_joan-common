@@ -1,0 +1,4 @@
+# The binder name MobileFeliCaClient looks up. On stock it is published by LG's
+# fork of packages/apps/Nfc; here it comes from the felica service added to the
+# same app, so the domain that registers it is nfc.
+type felica_service, service_manager_type;
