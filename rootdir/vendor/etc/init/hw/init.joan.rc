@@ -16,10 +16,12 @@ import /vendor/etc/init/hw/init.msm8998.rc
 #
 # A SKU only needs a suffixed copy where what sits at the canonical path is not
 # already its own: the acdb set comes from joan-common and belongs to no
-# japanese handset, so both spell themselves out, while the WLAN board data and
-# the felica configuration come from this device's own blob list and are
-# already the docomo ones. init ignores ENOENT from mount, so a SKU with no
-# copy of its own, and an unknown SKU, simply keep what is there.
+# japanese handset, so both spell themselves out, while the WLAN board data
+# comes from this device's own blob list and is already the docomo one. The
+# felica sets are the exception - both are spelled out even though the
+# canonical path already holds docomo's, because joan_jp's FelicaParts has to
+# be able to bind either of them by hand. init ignores ENOENT from mount, so a
+# SKU with no copy of its own, and an unknown SKU, simply keep what is there.
 #
 # early-init is early enough that nothing has these open yet: a bind mount is
 # invisible to a file descriptor somebody already holds. SetupMountNamespaces()
@@ -40,7 +42,9 @@ on early-init
 
     # mfs.cfg and mfm.cfg carry a model certificate FeliCa Networks signed per
     # handset, and config_felica.xml is the antenna autotune table, so the chip
-    # will not authenticate against another model's set.
+    # will not authenticate against another model's set. The element answers to
+    # the set it was formatted against rather than to the handset it sits in,
+    # so joan_jp's init.felica_model.rc can bind a different one over this.
     mount none /system/etc/felica_${ro.vendor.lge.sku} /system/etc/felica bind
 
 on post-fs-data
