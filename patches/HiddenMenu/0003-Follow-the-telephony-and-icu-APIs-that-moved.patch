@@ -1,0 +1,2645 @@
+From: The LineageOS Project
+Subject: [PATCH 3/3] Follow the telephony and icu APIs that moved
+
+The second round only diffed the app's android.* references against the boot
+classpath. Everything it reaches under other prefixes went unchecked, and
+that is where the rest of the breaks were:
+
+  libcore.icu.ICU.getTZDataVersion()           gone; android.icu has it
+  libcore.util.ZoneInfoDB                      moved into the i18n apex
+  com.android.internal.telephony.Phone         15 methods LG added
+  com.android.internal.telephony.PhoneFactory  getCommandsInterface()
+  com.android.ims.ImsManager                   isEmergencyCallAvailableOverWfc
+
+The ones with a current equivalent are ported to it: android.icu's
+TimeZone.getTZDataVersion(), com.android.i18n.timezone.ZoneInfoDb,
+getCommandsInterfaces()[0], and the apnType overload of
+getDataConnectionState().
+
+The fifteen Phone methods are LG's own additions to telephony-common -
+engineering mode, modem NV items, preferred network type and the band/MIMO
+test hooks - and there is nothing in AOSP behind them, so the calls are
+dropped: the screens open and sit at their defaults instead of dying in
+onCreate. getEmodeInfoPage is the only one with a return value, and yields "".
+isEmergencyCallAvailableOverWfc is likewise LG's; false is what the caller
+already handles.
+
+The rest came from watching the app rather than from diffing.
+
+com.lge.hiddenmenu.hal.*HalInterface.connectToProxy catches RemoteException
+around its getService(), but a HIDL lookup that finds nothing throws
+NoSuchElementException, which goes straight through and takes the singleton's
+class initialiser with it - so the screen dies in onCreate and every later
+attempt gets ExceptionInInitializerError. LG wrote the NoSuchElementException
+catch in six of these sixteen classes; this adds the same catch to the ten
+that were missing it, so a HAL that is absent or failed to start leaves the
+screen empty rather than gone.
+
+The menus hand off to nineteen LG and mediatek apps that are not part of this
+build - the GNSS test tools, the DM/FOTA clients, the operator hidden menu,
+the mtk logger - and the top menu's preference intents aim at more of the same
+(the UICC tool inside their Stk). Overriding startActivity on the sixteen
+activities that launch them catches every one: the entries stay listed and do
+nothing. The list came from pairing the const-strings that feed
+Intent.setClassName with what "pm path" answers for on the device. Those
+intents live in compiled preference xml, which cannot be edited without
+decoding the app's resources and renumbering the ids its smali has baked in.
+
+TetheringMode reads and writes the USB function mask, which needs MANAGE_USB.
+The app does not request it and cannot be given it for the same reason, so it
+reports "no function" and the setter is dropped.
+
+DebugScreen is declared to run in com.android.phone's process, which is uid
+radio - not the uid com.lge.hiddenmenu holds LGHIDDEN under - so binding its
+own package's banner service is a permission denial thrown out of onResume.
+The banner is an overlay over the screen; the screen works without it.
+
+DataDebugScreen reads the same com.lge integer twice, and the first patch in
+this series only answered the first of the two. The value is never used after
+it is computed, and the app's own else branch is to take zero, so the second
+lookup is answered by taking that branch.
+
+GraphView divides by what charge_full_design reads back, which is zero when
+it cannot be read at all.
+
+TouchTest asks framework-res for config_showNavigationBar, which is gone -
+whether there is a navigation bar is the policy's answer now, not a build
+resource. joan has one, and that is the branch the screen wants: it drops the
+capacitive key test and keeps the on-screen one.
+diff -ruN src/smali/com/lge/hiddenmenu/BT/BTMain.smali src3/smali/com/lge/hiddenmenu/BT/BTMain.smali
+diff -ruN src/smali/com/lge/hiddenmenu/BT/BTMain.smali src3/smali/com/lge/hiddenmenu/BT/BTMain.smali
+--- a/smali/com/lge/hiddenmenu/BT/BTMain.smali	2026-09-07 00:25:38.814463632 +0900
++++ b/smali/com/lge/hiddenmenu/BT/BTMain.smali	2026-09-07 03:39:52.188448039 +0900
+@@ -361,3 +361,30 @@
+     .line 69
+     return-void
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/app/ListActivity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "BTMain"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/Call/EmergencyCall.smali src3/smali/com/lge/hiddenmenu/Call/EmergencyCall.smali
+--- a/smali/com/lge/hiddenmenu/Call/EmergencyCall.smali	2026-09-07 00:25:38.820463724 +0900
++++ b/smali/com/lge/hiddenmenu/Call/EmergencyCall.smali	2026-09-07 02:27:04.915169705 +0900
+@@ -126,9 +126,7 @@
+     .local v0, "ret":Z
+     const/4 v1, 0x0
+ 
+-    invoke-static {p0, v1}, Lcom/android/ims/ImsManager;->isEmergencyCallAvailableOverWfc(Landroid/content/Context;I)Z
+-
+-    move-result v1
++    const/4 v1, 0x0
+ 
+     .line 100
+     .local v1, "ecVoWifi":Z
+diff -ruN src/smali/com/lge/hiddenmenu/DebugScreen/DebugScreen$1.smali src3/smali/com/lge/hiddenmenu/DebugScreen/DebugScreen$1.smali
+--- a/smali/com/lge/hiddenmenu/DebugScreen/DebugScreen$1.smali	2026-09-07 00:25:38.822463755 +0900
++++ b/smali/com/lge/hiddenmenu/DebugScreen/DebugScreen$1.smali	2026-09-07 02:27:04.912169658 +0900
+@@ -64,8 +64,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getModemStringItem(ILandroid/os/Message;)V
+-
+     .line 274
+     iget-object v0, p0, Lcom/lge/hiddenmenu/DebugScreen/DebugScreen$1;->this$0:Lcom/lge/hiddenmenu/DebugScreen/DebugScreen;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/DebugScreen/DebugScreen.smali src3/smali/com/lge/hiddenmenu/DebugScreen/DebugScreen.smali
+--- a/smali/com/lge/hiddenmenu/DebugScreen/DebugScreen.smali	2026-09-07 00:25:38.835463955 +0900
++++ b/smali/com/lge/hiddenmenu/DebugScreen/DebugScreen.smali	2026-09-07 03:39:52.188448039 +0900
+@@ -1818,25 +1818,16 @@
+ .method private startBannerService()V
+     .locals 3
+ 
+-    .line 853
+-    new-instance v0, Landroid/content/Intent;
+-
+-    const-class v1, Lcom/lge/hiddenmenu/DebugScreen/DebugScreenBannerService;
+-
+-    invoke-direct {v0, p0, v1}, Landroid/content/Intent;-><init>(Landroid/content/Context;Ljava/lang/Class;)V
+-
+-    .line 854
+-    .local v0, "intent":Landroid/content/Intent;
+-    iget-object v1, p0, Lcom/lge/hiddenmenu/DebugScreen/DebugScreen;->mBannerConnection:Landroid/content/ServiceConnection;
+-
+-    const/4 v2, 0x1
+-
+-    invoke-virtual {p0, v0, v1, v2}, Lcom/lge/hiddenmenu/DebugScreen/DebugScreen;->bindService(Landroid/content/Intent;Landroid/content/ServiceConnection;I)Z
++    # This activity is declared to run in com.android.phone's process, which is
++    # uid radio - not the uid com.lge.hiddenmenu holds LGHIDDEN under - so the
++    # bind to its own package's banner service is a permission denial, thrown
++    # out of onResume. The banner is a floating overlay over the debug screen;
++    # without it the screen itself still works. isBannerView stays false so
++    # stopBannerService does not try to unbind something never bound.
++    const/4 v0, 0x0
+ 
+-    .line 855
+-    iput-boolean v2, p0, Lcom/lge/hiddenmenu/DebugScreen/DebugScreen;->isBannerView:Z
++    iput-boolean v0, p0, Lcom/lge/hiddenmenu/DebugScreen/DebugScreen;->isBannerView:Z
+ 
+-    .line 856
+     return-void
+ .end method
+ 
+@@ -2946,8 +2937,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getModemStringItem(ILandroid/os/Message;)V
+-
+     .line 433
+     invoke-direct {p0}, Lcom/lge/hiddenmenu/DebugScreen/DebugScreen;->restartHandler()V
+ 
+@@ -2992,3 +2981,30 @@
+     .line 440
+     return-void
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "DebugScreen"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/FieldTest/AMRWBCheck$1.smali src3/smali/com/lge/hiddenmenu/FieldTest/AMRWBCheck$1.smali
+--- a/smali/com/lge/hiddenmenu/FieldTest/AMRWBCheck$1.smali	2026-09-07 00:25:38.830463878 +0900
++++ b/smali/com/lge/hiddenmenu/FieldTest/AMRWBCheck$1.smali	2026-09-07 02:27:04.879169136 +0900
+@@ -342,8 +342,6 @@
+ 
+     const v2, 0xd003c
+ 
+-    invoke-virtual {v1, v2, v0}, Lcom/android/internal/telephony/Phone;->getModemStringItem(ILandroid/os/Message;)V
+-
+     .line 55
+     nop
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/FieldTest/AMRWBCheck$2.smali src3/smali/com/lge/hiddenmenu/FieldTest/AMRWBCheck$2.smali
+--- a/smali/com/lge/hiddenmenu/FieldTest/AMRWBCheck$2.smali	2026-09-07 00:25:38.829463862 +0900
++++ b/smali/com/lge/hiddenmenu/FieldTest/AMRWBCheck$2.smali	2026-09-07 02:27:04.879169136 +0900
+@@ -136,8 +136,6 @@
+ 
+     iget-object v3, v3, Lcom/lge/hiddenmenu/FieldTest/AMRWBCheck;->mcc_mnc_amrwb:Ljava/lang/String;
+ 
+-    invoke-virtual {v1, v2, v3, v0}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 113
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/FieldTest/DM_FOTATest.smali src3/smali/com/lge/hiddenmenu/FieldTest/DM_FOTATest.smali
+--- a/smali/com/lge/hiddenmenu/FieldTest/DM_FOTATest.smali	2026-09-07 00:25:38.832463908 +0900
++++ b/smali/com/lge/hiddenmenu/FieldTest/DM_FOTATest.smali	2026-09-07 03:39:52.188448039 +0900
+@@ -289,3 +289,30 @@
+     .line 45
+     return-void
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/app/ListActivity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "DM_FOTATest"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/FieldTest/FieldTestMain.smali src3/smali/com/lge/hiddenmenu/FieldTest/FieldTestMain.smali
+--- a/smali/com/lge/hiddenmenu/FieldTest/FieldTestMain.smali	2026-09-07 00:25:38.836463970 +0900
++++ b/smali/com/lge/hiddenmenu/FieldTest/FieldTestMain.smali	2026-09-07 03:39:52.189448054 +0900
+@@ -992,3 +992,30 @@
+     .line 60
+     return-void
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/app/ListActivity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "FieldTestMain"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/FieldTest/GpriVolteVowifi/ImsGpriSetting.smali src3/smali/com/lge/hiddenmenu/FieldTest/GpriVolteVowifi/ImsGpriSetting.smali
+--- a/smali/com/lge/hiddenmenu/FieldTest/GpriVolteVowifi/ImsGpriSetting.smali	2026-09-07 00:25:38.836463970 +0900
++++ b/smali/com/lge/hiddenmenu/FieldTest/GpriVolteVowifi/ImsGpriSetting.smali	2026-09-07 03:39:52.189448054 +0900
+@@ -105,3 +105,30 @@
+     .line 39
+     return-void
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "ImsGpriSetting"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/FieldTest/LTEDataTest$1.smali src3/smali/com/lge/hiddenmenu/FieldTest/LTEDataTest$1.smali
+--- a/smali/com/lge/hiddenmenu/FieldTest/LTEDataTest$1.smali	2026-09-07 00:25:38.841464047 +0900
++++ b/smali/com/lge/hiddenmenu/FieldTest/LTEDataTest$1.smali	2026-09-07 02:27:04.873169041 +0900
+@@ -100,8 +100,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v2, v4, v3}, Lcom/android/internal/telephony/Phone;->setRmnetAutoconnect(ILandroid/os/Message;)V
+-
+     .line 98
+     iget-object v2, p0, Lcom/lge/hiddenmenu/FieldTest/LTEDataTest$1;->this$0:Lcom/lge/hiddenmenu/FieldTest/LTEDataTest;
+ 
+@@ -145,8 +143,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v2, v1, v3}, Lcom/android/internal/telephony/Phone;->setRmnetAutoconnect(ILandroid/os/Message;)V
+-
+     .line 103
+     iget-object v2, p0, Lcom/lge/hiddenmenu/FieldTest/LTEDataTest$1;->this$0:Lcom/lge/hiddenmenu/FieldTest/LTEDataTest;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/FieldTest/LTEDataTest$2.smali src3/smali/com/lge/hiddenmenu/FieldTest/LTEDataTest$2.smali
+--- a/smali/com/lge/hiddenmenu/FieldTest/LTEDataTest$2.smali	2026-09-07 00:25:38.842464062 +0900
++++ b/smali/com/lge/hiddenmenu/FieldTest/LTEDataTest$2.smali	2026-09-07 02:27:04.873169041 +0900
+@@ -100,8 +100,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v2, v4, v3}, Lcom/android/internal/telephony/Phone;->setRmnetAutoconnect(ILandroid/os/Message;)V
+-
+     .line 128
+     iget-object v2, p0, Lcom/lge/hiddenmenu/FieldTest/LTEDataTest$2;->this$0:Lcom/lge/hiddenmenu/FieldTest/LTEDataTest;
+ 
+@@ -145,8 +143,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v2, v1, v3}, Lcom/android/internal/telephony/Phone;->setRmnetAutoconnect(ILandroid/os/Message;)V
+-
+     .line 133
+     iget-object v2, p0, Lcom/lge/hiddenmenu/FieldTest/LTEDataTest$2;->this$0:Lcom/lge/hiddenmenu/FieldTest/LTEDataTest;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/FieldTest/ProtocolPRICheck$2.smali src3/smali/com/lge/hiddenmenu/FieldTest/ProtocolPRICheck$2.smali
+--- a/smali/com/lge/hiddenmenu/FieldTest/ProtocolPRICheck$2.smali	2026-09-07 00:25:38.846464124 +0900
++++ b/smali/com/lge/hiddenmenu/FieldTest/ProtocolPRICheck$2.smali	2026-09-07 02:27:04.870168994 +0900
+@@ -122,8 +122,6 @@
+ 
+     iget v2, v2, Lcom/lge/hiddenmenu/FieldTest/ProtocolPRICheck;->item:I
+ 
+-    invoke-virtual {v1, v2, v0}, Lcom/android/internal/telephony/Phone;->getGPRIItem(ILandroid/os/Message;)V
+-
+     .line 75
+     .end local v0    # "cota_msg":Landroid/os/Message;
+     goto :goto_0
+diff -ruN src/smali/com/lge/hiddenmenu/GCUV/GcuvMain.smali src3/smali/com/lge/hiddenmenu/GCUV/GcuvMain.smali
+--- a/smali/com/lge/hiddenmenu/GCUV/GcuvMain.smali	2026-09-07 00:25:38.854464247 +0900
++++ b/smali/com/lge/hiddenmenu/GCUV/GcuvMain.smali	2026-09-07 03:39:52.189448054 +0900
+@@ -227,3 +227,30 @@
+     .line 45
+     return-void
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/app/ListActivity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "GcuvMain"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/GPS/GPSMain.smali src3/smali/com/lge/hiddenmenu/GPS/GPSMain.smali
+--- a/smali/com/lge/hiddenmenu/GPS/GPSMain.smali	2026-09-07 00:25:38.854464247 +0900
++++ b/smali/com/lge/hiddenmenu/GPS/GPSMain.smali	2026-09-07 02:32:10.331968555 +0900
+@@ -408,3 +408,31 @@
+     .line 56
+     return-void
+ .end method
++
++# Every entry in this menu hands off to one of LG's standalone GNSS test
++# apps, and none of them are part of this build. Overriding startActivity
++# here catches all five call sites at once: the menu still lists them, and
++# tapping one logs instead of taking the process down.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/app/ListActivity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "GPSMain"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/GPS_MTK/GpsTest.smali src3/smali/com/lge/hiddenmenu/GPS_MTK/GpsTest.smali
+--- a/smali/com/lge/hiddenmenu/GPS_MTK/GpsTest.smali	2026-09-07 00:25:38.854464247 +0900
++++ b/smali/com/lge/hiddenmenu/GPS_MTK/GpsTest.smali	2026-09-07 03:39:52.189448054 +0900
+@@ -184,3 +184,30 @@
+     .line 36
+     return-void
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/app/ListActivity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "GpsTest"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/HWDeviceTest/TouchTest.smali src3/smali/com/lge/hiddenmenu/HWDeviceTest/TouchTest.smali
+--- a/smali/com/lge/hiddenmenu/HWDeviceTest/TouchTest.smali	2026-09-07 00:25:38.857464293 +0900
++++ b/smali/com/lge/hiddenmenu/HWDeviceTest/TouchTest.smali	2026-09-07 08:53:37.921242622 +0900
+@@ -139,15 +139,7 @@
+     invoke-virtual {p0, v0}, Lcom/lge/hiddenmenu/HWDeviceTest/TouchTest;->addPreferencesFromResource(I)V
+ 
+     .line 54
+-    invoke-virtual {p0}, Lcom/lge/hiddenmenu/HWDeviceTest/TouchTest;->getResources()Landroid/content/res/Resources;
+-
+-    move-result-object v0
+-
+-    const v1, 0x11200a1
+-
+-    invoke-virtual {v0, v1}, Landroid/content/res/Resources;->getBoolean(I)Z
+-
+-    move-result v0
++    const/4 v0, 0x1
+ 
+     .line 56
+     .local v0, "mShowNavigationBar":Z
+diff -ruN src/smali/com/lge/hiddenmenu/HiddenMenu.smali src3/smali/com/lge/hiddenmenu/HiddenMenu.smali
+--- a/smali/com/lge/hiddenmenu/HiddenMenu.smali	2026-09-07 00:25:38.867464447 +0900
++++ b/smali/com/lge/hiddenmenu/HiddenMenu.smali	2026-09-07 02:47:37.140488604 +0900
+@@ -1480,3 +1480,34 @@
+ 
+     return v0
+ .end method
++
++# The top menu is a PreferenceScreen, and several of its entries carry an
++# intent aimed at an LG app that is not part of this build - the UICC tool
++# inside their Stk, for one. Preference.performClick starts it without
++# checking, so the menu took the process down on a tap. The intents live in
++# the compiled preference xml, which cannot be edited without decoding the
++# app's resources and renumbering the ids its smali has baked in, so the
++# launch is guarded here instead.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/preference/PreferenceActivity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "HiddenMenu"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/AMRWBSetting.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/AMRWBSetting.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/AMRWBSetting.smali	2026-09-07 00:25:38.909465093 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/AMRWBSetting.smali	2026-09-07 02:27:04.819168188 +0900
+@@ -182,8 +182,6 @@
+ 
+     const/4 v4, 0x0
+ 
+-    invoke-virtual {v1, v2, v3, v4}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 129
+     iget-boolean v1, p0, Lcom/lge/hiddenmenu/ModemProtocol/AMRWBSetting;->isGlobal:Z
+ 
+@@ -272,8 +270,6 @@
+ 
+     const/4 v4, 0x0
+ 
+-    invoke-virtual {v1, v2, v3, v4}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 92
+     iget-boolean v1, p0, Lcom/lge/hiddenmenu/ModemProtocol/AMRWBSetting;->isGlobal:Z
+ 
+@@ -385,8 +381,6 @@
+ 
+     const/4 v4, 0x0
+ 
+-    invoke-virtual {v1, v2, v3, v4}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 111
+     iget-boolean v1, p0, Lcom/lge/hiddenmenu/ModemProtocol/AMRWBSetting;->isGlobal:Z
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/BandSelect/LTEBandSelection.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/BandSelect/LTEBandSelection.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/BandSelect/LTEBandSelection.smali	2026-09-07 00:25:38.920465262 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/BandSelect/LTEBandSelection.smali	2026-09-07 02:27:04.827168314 +0900
+@@ -599,8 +599,6 @@
+     .line 297
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/BandSelect/LTEBandSelection;->mPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v0, p1, p2, p3, p4}, Lcom/android/internal/telephony/Phone;->setRatBandMode([JJLandroid/os/Message;)V
+-
+     .line 298
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/BandSelect/NetworkMode.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/BandSelect/NetworkMode.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/BandSelect/NetworkMode.smali	2026-09-07 00:25:38.919465246 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/BandSelect/NetworkMode.smali	2026-09-07 02:27:04.823168251 +0900
+@@ -396,8 +396,6 @@
+     .line 230
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/BandSelect/NetworkMode;->mPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v0, p1, p2, p3, p4}, Lcom/android/internal/telephony/Phone;->setRatBandMode([JJLandroid/os/Message;)V
+-
+     .line 231
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/CPCSetting.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/CPCSetting.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/CPCSetting.smali	2026-09-07 00:25:38.919465246 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/CPCSetting.smali	2026-09-07 02:27:04.804167951 +0900
+@@ -102,8 +102,6 @@
+ 
+     const/4 v4, 0x0
+ 
+-    invoke-virtual {v1, v2, v3, v4}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 77
+     return-void
+ .end method
+@@ -166,8 +164,6 @@
+ 
+     const/4 v4, 0x0
+ 
+-    invoke-virtual {v1, v2, v3, v4}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 62
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$1.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$1.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$1.smali	2026-09-07 00:25:38.920465262 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$1.smali	2026-09-07 02:27:04.802167919 +0900
+@@ -80,8 +80,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngMode;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     goto :goto_0
+ 
+     .line 199
+@@ -108,8 +106,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngMode;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 202
+     :goto_0
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngMode$1;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngMode;
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$2.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$2.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$2.smali	2026-09-07 00:25:38.920465262 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$2.smali	2026-09-07 02:27:04.802167919 +0900
+@@ -96,8 +96,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngMode;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     goto :goto_0
+ 
+     .line 273
+@@ -124,8 +122,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngMode;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 275
+     :goto_0
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngMode$2;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngMode;
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$3.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$3.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$3.smali	2026-09-07 00:25:38.920465262 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$3.smali	2026-09-07 02:27:04.802167919 +0900
+@@ -105,8 +105,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngMode;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     goto :goto_0
+ 
+     .line 287
+@@ -133,8 +131,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngMode;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 289
+     :goto_0
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngMode$3;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngMode;
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$4.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$4.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$4.smali	2026-09-07 00:25:38.921465277 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$4.smali	2026-09-07 02:27:04.799167872 +0900
+@@ -95,8 +95,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngMode;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     goto :goto_0
+ 
+     .line 300
+@@ -123,8 +121,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngMode;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 302
+     :goto_0
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngMode$4;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngMode;
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$5.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$5.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$5.smali	2026-09-07 00:25:38.920465262 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngMode$5.smali	2026-09-07 02:27:04.800167888 +0900
+@@ -94,8 +94,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngMode;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     goto :goto_0
+ 
+     .line 314
+@@ -122,8 +120,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngMode;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 316
+     :goto_0
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngMode$5;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngMode;
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngMode.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngMode.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngMode.smali	2026-09-07 00:25:38.922465293 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngMode.smali	2026-09-07 02:27:04.802167919 +0900
+@@ -1285,9 +1285,7 @@
+ 
+     add-int/lit8 v3, v0, -0x2
+ 
+-    invoke-virtual {v2, v3}, Lcom/android/internal/telephony/Phone;->getEmodeInfoPage(I)Ljava/lang/String;
+-
+-    move-result-object v2
++    const-string v2, ""
+ 
+     invoke-virtual {v1, v2}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+ 
+@@ -1887,8 +1885,6 @@
+ 
+     iget-object v4, v0, Lcom/lge/hiddenmenu/ModemProtocol/EngMode;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v1, v2, v4}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     goto :goto_0
+ 
+     .line 261
+@@ -1905,8 +1901,6 @@
+ 
+     iget-object v4, v0, Lcom/lge/hiddenmenu/ModemProtocol/EngMode;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v1, v2, v4}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 263
+     :goto_0
+     iget v1, v0, Lcom/lge/hiddenmenu/ModemProtocol/EngMode;->CurrentMainItem:I
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$1.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$1.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$1.smali	2026-09-07 00:25:38.921465277 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$1.smali	2026-09-07 02:27:04.799167872 +0900
+@@ -62,8 +62,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 273
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual$1;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$2.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$2.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$2.smali	2026-09-07 00:25:38.921465277 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$2.smali	2026-09-07 02:27:04.799167872 +0900
+@@ -85,8 +85,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 336
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual$2;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$3.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$3.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$3.smali	2026-09-07 00:25:38.921465277 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$3.smali	2026-09-07 02:27:04.799167872 +0900
+@@ -94,8 +94,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 346
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual$3;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$4.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$4.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$4.smali	2026-09-07 00:25:38.922465293 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$4.smali	2026-09-07 02:27:04.796167825 +0900
+@@ -84,8 +84,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 355
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual$4;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$5.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$5.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$5.smali	2026-09-07 00:25:38.922465293 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual$5.smali	2026-09-07 02:27:04.796167825 +0900
+@@ -83,8 +83,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 365
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual$5;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual.smali	2026-09-07 00:25:38.924465323 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngModeDual.smali	2026-09-07 02:27:04.799167872 +0900
+@@ -1870,9 +1870,7 @@
+ 
+     add-int/lit8 v3, v0, -0x2
+ 
+-    invoke-virtual {v2, v3}, Lcom/android/internal/telephony/Phone;->getEmodeInfoPage(I)Ljava/lang/String;
+-
+-    move-result-object v2
++    const-string v2, ""
+ 
+     invoke-virtual {v1, v2}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+ 
+@@ -2465,8 +2463,6 @@
+ 
+     iget-object v3, v0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v1, v2, v3}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 328
+     iget v1, v0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeDual;->CurrentMainItem:I
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$1.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$1.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$1.smali	2026-09-07 00:25:38.922465293 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$1.smali	2026-09-07 02:27:04.796167825 +0900
+@@ -62,8 +62,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 304
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS$1;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$2.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$2.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$2.smali	2026-09-07 00:25:38.922465293 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$2.smali	2026-09-07 02:27:04.796167825 +0900
+@@ -85,8 +85,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 367
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS$2;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$3.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$3.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$3.smali	2026-09-07 00:25:38.923465308 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$3.smali	2026-09-07 02:27:04.795167809 +0900
+@@ -94,8 +94,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 377
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS$3;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$4.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$4.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$4.smali	2026-09-07 00:25:38.922465293 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$4.smali	2026-09-07 02:27:04.795167809 +0900
+@@ -84,8 +84,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 386
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS$4;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$5.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$5.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$5.smali	2026-09-07 00:25:38.923465308 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS$5.smali	2026-09-07 02:27:04.792167761 +0900
+@@ -83,8 +83,6 @@
+ 
+     iget-object v2, v2, Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 396
+     iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS$5;->this$0:Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS.smali	2026-09-07 00:25:38.926465354 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/EngModeTS.smali	2026-09-07 02:27:04.795167809 +0900
+@@ -2465,9 +2465,7 @@
+ 
+     add-int/lit8 v3, v0, -0x2
+ 
+-    invoke-virtual {v2, v3}, Lcom/android/internal/telephony/Phone;->getEmodeInfoPage(I)Ljava/lang/String;
+-
+-    move-result-object v2
++    const-string v2, ""
+ 
+     invoke-virtual {v1, v2}, Landroid/widget/TextView;->setText(Ljava/lang/CharSequence;)V
+ 
+@@ -3060,8 +3058,6 @@
+ 
+     iget-object v3, v0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS;->msg:Landroid/os/Message;
+ 
+-    invoke-virtual {v1, v2, v3}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 359
+     iget v1, v0, Lcom/lge/hiddenmenu/ModemProtocol/EngModeTS;->CurrentMainItem:I
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/FakeSecuritySetting.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/FakeSecuritySetting.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/FakeSecuritySetting.smali	2026-09-07 00:25:38.930465415 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/FakeSecuritySetting.smali	2026-09-07 02:27:04.785167651 +0900
+@@ -93,8 +93,6 @@
+ 
+     const v4, 0x60007
+ 
+-    invoke-virtual {v1, v4, v2, v3}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 75
+     iget-object v1, p0, Lcom/lge/hiddenmenu/ModemProtocol/FakeSecuritySetting;->mPhone:Lcom/android/internal/telephony/Phone;
+ 
+@@ -102,8 +100,6 @@
+ 
+     const v4, 0x60008
+ 
+-    invoke-virtual {v1, v4, v2, v3}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 76
+     iget-object v1, p0, Lcom/lge/hiddenmenu/ModemProtocol/FakeSecuritySetting;->mPhone:Lcom/android/internal/telephony/Phone;
+ 
+@@ -111,8 +107,6 @@
+ 
+     const v4, 0x60019
+ 
+-    invoke-virtual {v1, v4, v2, v3}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 77
+     return-void
+ .end method
+@@ -166,8 +160,6 @@
+ 
+     const v4, 0x60007
+ 
+-    invoke-virtual {v1, v4, v2, v3}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 61
+     iget-object v1, p0, Lcom/lge/hiddenmenu/ModemProtocol/FakeSecuritySetting;->mPhone:Lcom/android/internal/telephony/Phone;
+ 
+@@ -175,8 +167,6 @@
+ 
+     const v4, 0x60008
+ 
+-    invoke-virtual {v1, v4, v2, v3}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 62
+     iget-object v1, p0, Lcom/lge/hiddenmenu/ModemProtocol/FakeSecuritySetting;->mPhone:Lcom/android/internal/telephony/Phone;
+ 
+@@ -184,8 +174,6 @@
+ 
+     const v4, 0x60019
+ 
+-    invoke-virtual {v1, v4, v2, v3}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 63
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/GCFFlagSetting.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/GCFFlagSetting.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/GCFFlagSetting.smali	2026-09-07 00:25:38.930465415 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/GCFFlagSetting.smali	2026-09-07 02:27:04.781167587 +0900
+@@ -149,8 +149,6 @@
+ 
+     const/4 v4, 0x1
+ 
+-    invoke-virtual {v3, v2, v4, v1}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 102
+     invoke-virtual {p0}, Lcom/lge/hiddenmenu/ModemProtocol/GCFFlagSetting;->showRestartPopup()V
+ 
+@@ -170,8 +168,6 @@
+ 
+     const/4 v4, 0x0
+ 
+-    invoke-virtual {v3, v2, v4, v1}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 96
+     invoke-virtual {p0}, Lcom/lge/hiddenmenu/ModemProtocol/GCFFlagSetting;->showRestartPopup()V
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$1.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$1.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$1.smali	2026-09-07 00:25:38.931465431 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$1.smali	2026-09-07 02:27:04.780167572 +0900
+@@ -54,8 +54,6 @@
+     const/4 v2, 0x0
+ 
+     const/4 v3, 0x0
+-
+-    invoke-virtual {v0, v1, v2, v3}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+     :try_end_0
+     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$2.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$2.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$2.smali	2026-09-07 00:25:38.931465431 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$2.smali	2026-09-07 02:27:04.780167572 +0900
+@@ -54,8 +54,6 @@
+     const/4 v2, 0x1
+ 
+     const/4 v3, 0x0
+-
+-    invoke-virtual {v0, v1, v2, v3}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+     :try_end_0
+     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$4.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$4.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$4.smali	2026-09-07 00:25:38.931465431 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$4.smali	2026-09-07 02:27:04.780167572 +0900
+@@ -54,8 +54,6 @@
+     const/4 v2, 0x1
+ 
+     const/4 v3, 0x0
+-
+-    invoke-virtual {v0, v1, v2, v3}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+     :try_end_0
+     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$6.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$6.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$6.smali	2026-09-07 00:25:38.932465446 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/IRATTestMode$6.smali	2026-09-07 02:27:04.779167556 +0900
+@@ -54,8 +54,6 @@
+     const/4 v2, 0x0
+ 
+     const/4 v3, 0x0
+-
+-    invoke-virtual {v0, v1, v2, v3}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+     :try_end_0
+     .catch Ljava/lang/Exception; {:try_start_0 .. :try_end_0} :catch_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/ModemProtocolMain.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/ModemProtocolMain.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/ModemProtocolMain.smali	2026-09-07 00:25:38.947465677 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/ModemProtocolMain.smali	2026-09-07 03:39:52.189448054 +0900
+@@ -2002,8 +2002,6 @@
+     .line 341
+     iget-object v4, p0, Lcom/lge/hiddenmenu/ModemProtocol/ModemProtocolMain;->mPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v4, v6, v7}, Lcom/android/internal/telephony/Phone;->setRmnetAutoconnect(ILandroid/os/Message;)V
+-
+     .line 342
+     invoke-virtual {p0}, Lcom/lge/hiddenmenu/ModemProtocol/ModemProtocolMain;->getContentResolver()Landroid/content/ContentResolver;
+ 
+@@ -2026,8 +2024,6 @@
+     :cond_e
+     iget-object v4, p0, Lcom/lge/hiddenmenu/ModemProtocol/ModemProtocolMain;->mPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v4, v5, v7}, Lcom/android/internal/telephony/Phone;->setRmnetAutoconnect(ILandroid/os/Message;)V
+-
+     .line 346
+     invoke-virtual {p0}, Lcom/lge/hiddenmenu/ModemProtocol/ModemProtocolMain;->getContentResolver()Landroid/content/ContentResolver;
+ 
+@@ -2082,3 +2078,30 @@
+     :goto_4
+     return v5
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/preference/PreferenceActivity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "ModemProtocolMain"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/NullIntegritySetting.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/NullIntegritySetting.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/NullIntegritySetting.smali	2026-09-07 00:25:38.946465662 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/NullIntegritySetting.smali	2026-09-07 02:27:04.756167192 +0900
+@@ -102,8 +102,6 @@
+ 
+     const/4 v4, 0x0
+ 
+-    invoke-virtual {v1, v2, v3, v4}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 76
+     return-void
+ .end method
+@@ -166,8 +164,6 @@
+ 
+     const/4 v4, 0x0
+ 
+-    invoke-virtual {v1, v2, v3, v4}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 62
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/ProtocolEmul.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/ProtocolEmul.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/ProtocolEmul.smali	2026-09-07 00:25:38.951465739 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/ProtocolEmul.smali	2026-09-07 02:27:04.751167113 +0900
+@@ -209,8 +209,6 @@
+ 
+     const/4 v2, 0x0
+ 
+-    invoke-virtual {v0, v1, p1, v2}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 321
+     return-void
+ .end method
+@@ -226,8 +224,6 @@
+ 
+     const/4 v2, 0x0
+ 
+-    invoke-virtual {v0, v1, p1, v2}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 327
+     return-void
+ .end method
+@@ -243,8 +239,6 @@
+ 
+     const/4 v2, 0x0
+ 
+-    invoke-virtual {v0, v1, p1, v2}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 324
+     return-void
+ .end method
+@@ -260,8 +254,6 @@
+ 
+     const/4 v2, 0x0
+ 
+-    invoke-virtual {v0, v1, p1, v2}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 318
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/RAT_Selection.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/RAT_Selection.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/RAT_Selection.smali	2026-09-07 00:25:38.951465739 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/RAT_Selection.smali	2026-09-07 02:27:04.749167082 +0900
+@@ -133,8 +133,6 @@
+ 
+     const/16 v5, 0x68
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 134
+     goto :goto_0
+ 
+@@ -144,8 +142,6 @@
+ 
+     const/4 v5, 0x1
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 130
+     goto :goto_0
+ 
+@@ -155,8 +151,6 @@
+ 
+     const/16 v5, 0xd
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 127
+     goto :goto_0
+ 
+@@ -166,8 +160,6 @@
+ 
+     const/4 v5, 0x2
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 124
+     goto :goto_0
+ 
+@@ -177,8 +169,6 @@
+ 
+     const/4 v5, 0x3
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 121
+     goto :goto_0
+ 
+@@ -188,8 +178,6 @@
+ 
+     const/16 v5, 0x18
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 118
+     goto :goto_0
+ 
+@@ -199,8 +187,6 @@
+ 
+     const/16 v5, 0xf
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 115
+     goto :goto_0
+ 
+@@ -210,8 +196,6 @@
+ 
+     const/16 v5, 0xc
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 112
+     goto :goto_0
+ 
+@@ -221,8 +205,6 @@
+ 
+     const/16 v5, 0xb
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 108
+     goto :goto_0
+ 
+@@ -232,8 +214,6 @@
+ 
+     const/16 v5, 0x65
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 105
+     goto :goto_0
+ 
+@@ -241,8 +221,6 @@
+     :pswitch_a
+     iget-object v5, p0, Lcom/lge/hiddenmenu/ModemProtocol/RAT_Selection;->NMPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v5, v4, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 102
+     goto :goto_0
+ 
+@@ -252,8 +230,6 @@
+ 
+     const/16 v5, 0x14
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 99
+     goto :goto_0
+ 
+@@ -263,8 +239,6 @@
+ 
+     const/16 v5, 0x9
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 96
+     nop
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/RAT_Selection_telcel.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/RAT_Selection_telcel.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/RAT_Selection_telcel.smali	2026-09-07 00:25:38.952465754 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/RAT_Selection_telcel.smali	2026-09-07 02:27:04.748167066 +0900
+@@ -146,8 +146,6 @@
+ 
+     const/16 v5, 0xb
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 99
+     goto :goto_0
+ 
+@@ -157,8 +155,6 @@
+ 
+     const/4 v5, 0x2
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 96
+     goto :goto_0
+ 
+@@ -168,8 +164,6 @@
+ 
+     const/4 v5, 0x1
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 93
+     goto :goto_0
+ 
+@@ -179,8 +173,6 @@
+ 
+     const/16 v5, 0x9
+ 
+-    invoke-virtual {v4, v5, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 90
+     nop
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/TetheringMode$1.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/TetheringMode$1.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/TetheringMode$1.smali	2026-09-07 00:25:38.952465754 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/TetheringMode$1.smali	2026-09-07 02:32:10.331968555 +0900
+@@ -105,7 +105,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v2, v5, v6}, Landroid/hardware/usb/UsbManager;->setCurrentFunctions(J)V
+ 
+     .line 73
+     and-long v2, v5, v3
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/TetheringMode.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/TetheringMode.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/TetheringMode.smali	2026-09-07 00:25:38.952465754 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/TetheringMode.smali	2026-09-07 02:32:10.331968555 +0900
+@@ -184,11 +184,7 @@
+     .locals 6
+ 
+     .line 95
+-    iget-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/TetheringMode;->mUsbManager:Landroid/hardware/usb/UsbManager;
+-
+-    invoke-virtual {v0}, Landroid/hardware/usb/UsbManager;->getCurrentFunctions()J
+-
+-    move-result-wide v0
++    const-wide/16 v0, 0x0
+ 
+     .line 97
+     .local v0, "functions":J
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/ViewMcfgItems.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/ViewMcfgItems.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/ViewMcfgItems.smali	2026-09-07 00:25:38.953465769 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/ViewMcfgItems.smali	2026-09-07 02:27:04.747167050 +0900
+@@ -368,8 +368,6 @@
+ 
+     const v2, 0xd0068
+ 
+-    invoke-virtual {v0, v2, v1}, Lcom/android/internal/telephony/Phone;->getModemStringItem(ILandroid/os/Message;)V
+-
+     .line 72
+     const-string v0, "SIM1"
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/ViewRadioProp.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/ViewRadioProp.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/ViewRadioProp.smali	2026-09-07 00:25:38.954465785 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/ViewRadioProp.smali	2026-09-07 02:27:04.746167034 +0900
+@@ -351,8 +351,6 @@
+ 
+     const v2, 0xd0041
+ 
+-    invoke-virtual {v0, v2, v1}, Lcom/android/internal/telephony/Phone;->getModemStringItem(ILandroid/os/Message;)V
+-
+     .line 61
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/VoLTERadioSetting.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/VoLTERadioSetting.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/VoLTERadioSetting.smali	2026-09-07 00:25:38.954465785 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/VoLTERadioSetting.smali	2026-09-07 02:27:04.742166971 +0900
+@@ -102,8 +102,6 @@
+ 
+     const/4 v4, 0x0
+ 
+-    invoke-virtual {v1, v2, v3, v4}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 77
+     return-void
+ .end method
+@@ -166,8 +164,6 @@
+ 
+     const/4 v4, 0x0
+ 
+-    invoke-virtual {v1, v2, v3, v4}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 62
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/qcril_log_adb_on.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/qcril_log_adb_on.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/qcril_log_adb_on.smali	2026-09-07 00:25:38.954465785 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/qcril_log_adb_on.smali	2026-09-07 02:27:04.743166987 +0900
+@@ -435,10 +435,14 @@
+     invoke-virtual {p0, v0}, Lcom/lge/hiddenmenu/ModemProtocol/qcril_log_adb_on;->addPreferencesFromResource(I)V
+ 
+     .line 52
+-    invoke-static {}, Lcom/android/internal/telephony/PhoneFactory;->getCommandsInterface()Lcom/android/internal/telephony/CommandsInterface;
++    invoke-static {}, Lcom/android/internal/telephony/PhoneFactory;->getCommandsInterfaces()[Lcom/android/internal/telephony/CommandsInterface;
+ 
+     move-result-object v0
+ 
++    const/4 v1, 0x0
++
++    aget-object v0, v0, v1
++
+     iput-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/qcril_log_adb_on;->mCI_QCRIL:Lcom/android/internal/telephony/CommandsInterface;
+ 
+     .line 53
+diff -ruN src/smali/com/lge/hiddenmenu/ModemProtocol/qmi_fw_log_check_vss_init.smali src3/smali/com/lge/hiddenmenu/ModemProtocol/qmi_fw_log_check_vss_init.smali
+--- a/smali/com/lge/hiddenmenu/ModemProtocol/qmi_fw_log_check_vss_init.smali	2026-09-07 00:25:38.954465785 +0900
++++ b/smali/com/lge/hiddenmenu/ModemProtocol/qmi_fw_log_check_vss_init.smali	2026-09-07 02:27:04.744167003 +0900
+@@ -327,10 +327,14 @@
+     invoke-virtual {p0, v0}, Lcom/lge/hiddenmenu/ModemProtocol/qmi_fw_log_check_vss_init;->addPreferencesFromResource(I)V
+ 
+     .line 41
+-    invoke-static {}, Lcom/android/internal/telephony/PhoneFactory;->getCommandsInterface()Lcom/android/internal/telephony/CommandsInterface;
++    invoke-static {}, Lcom/android/internal/telephony/PhoneFactory;->getCommandsInterfaces()[Lcom/android/internal/telephony/CommandsInterface;
+ 
+     move-result-object v0
+ 
++    const/4 v1, 0x0
++
++    aget-object v0, v0, v1
++
+     iput-object v0, p0, Lcom/lge/hiddenmenu/ModemProtocol/qmi_fw_log_check_vss_init;->mCI_QCRIL:Lcom/android/internal/telephony/CommandsInterface;
+ 
+     .line 43
+diff -ruN src/smali/com/lge/hiddenmenu/MultiBandSelection/MultiBandSelection$3.smali src3/smali/com/lge/hiddenmenu/MultiBandSelection/MultiBandSelection$3.smali
+--- a/smali/com/lge/hiddenmenu/MultiBandSelection/MultiBandSelection$3.smali	2026-09-07 00:25:38.954465785 +0900
++++ b/smali/com/lge/hiddenmenu/MultiBandSelection/MultiBandSelection$3.smali	2026-09-07 02:27:04.742166971 +0900
+@@ -82,8 +82,6 @@
+ 
+     const/4 v3, 0x0
+ 
+-    invoke-virtual {v0, v1, v2, v3}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 419
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/MultiBandSelection/MultiBandSelection.smali src3/smali/com/lge/hiddenmenu/MultiBandSelection/MultiBandSelection.smali
+--- a/smali/com/lge/hiddenmenu/MultiBandSelection/MultiBandSelection.smali	2026-09-07 00:25:38.957465831 +0900
++++ b/smali/com/lge/hiddenmenu/MultiBandSelection/MultiBandSelection.smali	2026-09-07 03:39:52.189448054 +0900
+@@ -1143,8 +1143,6 @@
+ 
+     const v8, 0x60038
+ 
+-    invoke-virtual {v7, v8, v1, v6}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 398
+     const-wide/16 v6, 0x1f4
+ 
+@@ -1256,8 +1254,6 @@
+ 
+     const v2, 0x60038
+ 
+-    invoke-virtual {v0, v2, v1}, Lcom/android/internal/telephony/Phone;->getModemStringItem(ILandroid/os/Message;)V
+-
+     .line 200
+     new-instance v0, Lcom/lge/hiddenmenu/MultiBandSelection/MultiBandSelection$1;
+ 
+@@ -1958,3 +1954,30 @@
+     .line 335
+     return-void
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "MultiBandSelection"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/Power/GraphView.smali src3/smali/com/lge/hiddenmenu/Power/GraphView.smali
+--- a/smali/com/lge/hiddenmenu/Power/GraphView.smali	2026-09-07 00:25:38.965465954 +0900
++++ b/smali/com/lge/hiddenmenu/Power/GraphView.smali	2026-09-07 04:30:28.934578657 +0900
+@@ -1148,8 +1148,17 @@
+     .local v6, "nFullCapacityDesign":I
+     mul-int/lit16 v12, v5, 0x3e8
+ 
++    if-lez v6, :cond_no_design_capacity
++
+     div-int/2addr v12, v6
+ 
++    goto :goto_capacity_ratio
++
++    :cond_no_design_capacity
++    const/4 v12, 0x0
++
++    :goto_capacity_ratio
++
+     .line 152
+     .local v12, "nFullCapacityRatio":I
+     iget-object v13, v0, Lcom/lge/hiddenmenu/Power/GraphView;->paint:Landroid/graphics/Paint;
+diff -ruN src/smali/com/lge/hiddenmenu/RF/CACallRIL.smali src3/smali/com/lge/hiddenmenu/RF/CACallRIL.smali
+--- a/smali/com/lge/hiddenmenu/RF/CACallRIL.smali	2026-09-07 00:25:38.976466123 +0900
++++ b/smali/com/lge/hiddenmenu/RF/CACallRIL.smali	2026-09-07 02:27:04.685166070 +0900
+@@ -45,8 +45,6 @@
+ 
+     const/4 v2, 0x6
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 108
+     return-void
+ .end method
+@@ -61,8 +59,6 @@
+ 
+     const/4 v2, 0x2
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 103
+     return-void
+ .end method
+@@ -77,8 +73,6 @@
+ 
+     const/4 v2, 0x5
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 98
+     return-void
+ .end method
+@@ -93,8 +87,6 @@
+ 
+     const/4 v2, 0x7
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 118
+     return-void
+ .end method
+@@ -109,8 +101,6 @@
+ 
+     const/4 v2, 0x3
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 113
+     return-void
+ .end method
+@@ -125,8 +115,6 @@
+ 
+     const/4 v2, 0x1
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 93
+     return-void
+ .end method
+@@ -141,8 +129,6 @@
+ 
+     const/16 v2, 0xe
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 138
+     return-void
+ .end method
+@@ -157,8 +143,6 @@
+ 
+     const/16 v2, 0xa
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 133
+     return-void
+ .end method
+@@ -173,8 +157,6 @@
+ 
+     const/16 v2, 0xd
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 128
+     return-void
+ .end method
+@@ -189,8 +171,6 @@
+ 
+     const/16 v2, 0xf
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 148
+     return-void
+ .end method
+@@ -205,8 +185,6 @@
+ 
+     const/16 v2, 0xb
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 143
+     return-void
+ .end method
+@@ -221,8 +199,6 @@
+ 
+     const/16 v2, 0x9
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 123
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/RF/CallHoRxdRIL.smali src3/smali/com/lge/hiddenmenu/RF/CallHoRxdRIL.smali
+--- a/smali/com/lge/hiddenmenu/RF/CallHoRxdRIL.smali	2026-09-07 00:25:38.976466123 +0900
++++ b/smali/com/lge/hiddenmenu/RF/CallHoRxdRIL.smali	2026-09-07 02:27:04.682166023 +0900
+@@ -45,8 +45,6 @@
+ 
+     const/4 v2, 0x1
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 95
+     return-void
+ .end method
+@@ -61,8 +59,6 @@
+ 
+     const/4 v2, 0x3
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 121
+     return-void
+ .end method
+@@ -77,8 +73,6 @@
+ 
+     const/16 v2, 0xf
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 127
+     return-void
+ .end method
+@@ -93,8 +87,6 @@
+ 
+     const/4 v2, 0x2
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 102
+     return-void
+ .end method
+@@ -109,8 +101,6 @@
+ 
+     const/4 v2, 0x4
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 108
+     return-void
+ .end method
+@@ -125,8 +115,6 @@
+ 
+     const/16 v2, 0x8
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 114
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/RF/CallRIL.smali src3/smali/com/lge/hiddenmenu/RF/CallRIL.smali
+--- a/smali/com/lge/hiddenmenu/RF/CallRIL.smali	2026-09-07 00:25:38.976466123 +0900
++++ b/smali/com/lge/hiddenmenu/RF/CallRIL.smali	2026-09-07 02:27:04.682166023 +0900
+@@ -60,8 +60,6 @@
+ 
+     const/4 v2, 0x1
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 103
+     return-void
+ .end method
+@@ -76,8 +74,6 @@
+ 
+     const/4 v2, 0x2
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 97
+     return-void
+ .end method
+@@ -126,8 +122,6 @@
+ 
+     const/4 v2, 0x3
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     goto :goto_1
+ 
+     .line 109
+@@ -137,8 +131,6 @@
+ 
+     const/16 v2, 0xf
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setMiMoAntennaControlTest(Landroid/os/Message;I)V
+-
+     .line 115
+     :goto_1
+     return-void
+diff -ruN src/smali/com/lge/hiddenmenu/RF/RFMmwFixedBeamSetting$MyHandler.smali src3/smali/com/lge/hiddenmenu/RF/RFMmwFixedBeamSetting$MyHandler.smali
+--- a/smali/com/lge/hiddenmenu/RF/RFMmwFixedBeamSetting$MyHandler.smali	2026-09-07 00:25:38.984466246 +0900
++++ b/smali/com/lge/hiddenmenu/RF/RFMmwFixedBeamSetting$MyHandler.smali	2026-09-07 02:27:04.668165802 +0900
+@@ -73,8 +73,6 @@
+     .line 150
+     const v2, 0xd0073
+ 
+-    invoke-virtual {v0, v2, v1}, Lcom/android/internal/telephony/Phone;->getModemIntegerItem(ILandroid/os/Message;)V
+-
+     .line 152
+     return-void
+ .end method
+@@ -624,8 +622,6 @@
+     .line 158
+     const v2, 0xd0073
+ 
+-    invoke-virtual {v0, v2, p1, v1}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 161
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/RF/RFRTSARSetting$RTSARRIL.smali src3/smali/com/lge/hiddenmenu/RF/RFRTSARSetting$RTSARRIL.smali
+--- a/smali/com/lge/hiddenmenu/RF/RFRTSARSetting$RTSARRIL.smali	2026-09-07 00:25:38.986466277 +0900
++++ b/smali/com/lge/hiddenmenu/RF/RFRTSARSetting$RTSARRIL.smali	2026-09-07 02:27:04.665165754 +0900
+@@ -73,8 +73,6 @@
+     .line 136
+     const v2, 0x6004a
+ 
+-    invoke-virtual {v0, v2, v1}, Lcom/android/internal/telephony/Phone;->getModemIntegerItem(ILandroid/os/Message;)V
+-
+     .line 138
+     return-void
+ .end method
+@@ -592,7 +590,6 @@
+     move-result-object v2
+ 
+     .line 150
+-    invoke-virtual {v0, v1, p1, v2}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+ 
+     .line 153
+     return-void
+diff -ruN src/smali/com/lge/hiddenmenu/SVC/log_service/DevOnlyMenu.smali src3/smali/com/lge/hiddenmenu/SVC/log_service/DevOnlyMenu.smali
+--- a/smali/com/lge/hiddenmenu/SVC/log_service/DevOnlyMenu.smali	2026-09-07 00:25:39.014466707 +0900
++++ b/smali/com/lge/hiddenmenu/SVC/log_service/DevOnlyMenu.smali	2026-09-07 03:39:52.189448054 +0900
+@@ -1095,3 +1095,30 @@
+         :pswitch_0
+     .end packed-switch
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/preference/PreferenceActivity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "DevOnlyMenu"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/SVC/log_service/MainActivity.smali src3/smali/com/lge/hiddenmenu/SVC/log_service/MainActivity.smali
+--- a/smali/com/lge/hiddenmenu/SVC/log_service/MainActivity.smali	2026-09-07 00:25:39.020466800 +0900
++++ b/smali/com/lge/hiddenmenu/SVC/log_service/MainActivity.smali	2026-09-07 03:39:52.190448070 +0900
+@@ -1962,3 +1962,30 @@
+         :pswitch_0
+     .end packed-switch
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/preference/PreferenceActivity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "MainActivity"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/SVC/version_info/VersionInfo.smali src3/smali/com/lge/hiddenmenu/SVC/version_info/VersionInfo.smali
+--- a/smali/com/lge/hiddenmenu/SVC/version_info/VersionInfo.smali	2026-09-07 00:25:39.037467061 +0900
++++ b/smali/com/lge/hiddenmenu/SVC/version_info/VersionInfo.smali	2026-09-07 03:38:04.664774026 +0900
+@@ -1755,7 +1755,7 @@
+ 
+     invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+ 
+-    invoke-static {}, Llibcore/icu/ICU;->getTZDataVersion()Ljava/lang/String;
++    invoke-static {}, Landroid/icu/util/TimeZone;->getTZDataVersion()Ljava/lang/String;
+ 
+     move-result-object v5
+ 
+@@ -1793,11 +1793,11 @@
+ 
+     invoke-virtual {v4, v5}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+ 
+-    invoke-static {}, Llibcore/util/ZoneInfoDB;->getInstance()Llibcore/util/ZoneInfoDB$TzData;
++    invoke-static {}, Lcom/android/i18n/timezone/ZoneInfoDb;->getInstance()Lcom/android/i18n/timezone/ZoneInfoDb;
+ 
+     move-result-object v5
+ 
+-    invoke-virtual {v5}, Llibcore/util/ZoneInfoDB$TzData;->getVersion()Ljava/lang/String;
++    invoke-virtual {v5}, Lcom/android/i18n/timezone/ZoneInfoDb;->getVersion()Ljava/lang/String;
+ 
+     move-result-object v5
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/VoLTEFeature/VolteFeatureOnOff.smali src3/smali/com/lge/hiddenmenu/VoLTEFeature/VolteFeatureOnOff.smali
+--- a/smali/com/lge/hiddenmenu/VoLTEFeature/VolteFeatureOnOff.smali	2026-09-07 00:25:39.085467799 +0900
++++ b/smali/com/lge/hiddenmenu/VoLTEFeature/VolteFeatureOnOff.smali	2026-09-07 02:27:04.464162578 +0900
+@@ -109,8 +109,6 @@
+     .line 56
+     iget-object v0, p0, Lcom/lge/hiddenmenu/VoLTEFeature/VolteFeatureOnOff;->mPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v0, v3, v1, v2}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 57
+     const-string v0, "persist.product.lge.radio.ims_onoff"
+ 
+@@ -213,8 +211,6 @@
+     :cond_0
+     iget-object v0, p0, Lcom/lge/hiddenmenu/VoLTEFeature/VolteFeatureOnOff;->mPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v0, v3, v4, v2}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 71
+     const-string v0, "persist.product.lge.radio.ims_onoff"
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/WiFiTest/Upsell.smali src3/smali/com/lge/hiddenmenu/WiFiTest/Upsell.smali
+--- a/smali/com/lge/hiddenmenu/WiFiTest/Upsell.smali	2026-09-07 00:25:39.090467876 +0900
++++ b/smali/com/lge/hiddenmenu/WiFiTest/Upsell.smali	2026-09-07 03:39:52.190448070 +0900
+@@ -210,3 +210,30 @@
+     .line 83
+     return-object v3
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/preference/PreferenceActivity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "Upsell"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/china_test/DsdaOnOff.smali src3/smali/com/lge/hiddenmenu/china_test/DsdaOnOff.smali
+--- a/smali/com/lge/hiddenmenu/china_test/DsdaOnOff.smali	2026-09-07 00:25:39.103468076 +0900
++++ b/smali/com/lge/hiddenmenu/china_test/DsdaOnOff.smali	2026-09-07 02:27:04.409161709 +0900
+@@ -215,8 +215,6 @@
+ 
+     const/4 v2, 0x0
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 47
+     const-string v0, "dsdaonoff"
+ 
+@@ -233,9 +231,7 @@
+ 
+     const/4 v1, 0x0
+ 
+-    invoke-virtual {v0, v1}, Lcom/android/internal/telephony/Phone;->getEmodeInfoPage(I)Ljava/lang/String;
+-
+-    move-result-object v0
++    const-string v0, ""
+ 
+     sput-object v0, Lcom/lge/hiddenmenu/china_test/DsdaOnOff;->sCurrentMode:Ljava/lang/String;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/china_test/LabTestSetting$2.smali src3/smali/com/lge/hiddenmenu/china_test/LabTestSetting$2.smali
+--- a/smali/com/lge/hiddenmenu/china_test/LabTestSetting$2.smali	2026-09-07 00:25:39.103468076 +0900
++++ b/smali/com/lge/hiddenmenu/china_test/LabTestSetting$2.smali	2026-09-07 02:27:04.408161693 +0900
+@@ -88,8 +88,6 @@
+ 
+     const/16 v6, 0xb
+ 
+-    invoke-virtual {v5, v3, v6, v1}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 103
+     iget-object v3, p0, Lcom/lge/hiddenmenu/china_test/LabTestSetting$2;->this$0:Lcom/lge/hiddenmenu/china_test/LabTestSetting;
+ 
+@@ -128,8 +126,6 @@
+ 
+     const/4 v6, 0x2
+ 
+-    invoke-virtual {v5, v3, v6, v1}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 96
+     iget-object v3, p0, Lcom/lge/hiddenmenu/china_test/LabTestSetting$2;->this$0:Lcom/lge/hiddenmenu/china_test/LabTestSetting;
+ 
+@@ -166,8 +162,6 @@
+ 
+     move-result-object v5
+ 
+-    invoke-virtual {v5, v3, v4, v1}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 89
+     iget-object v3, p0, Lcom/lge/hiddenmenu/china_test/LabTestSetting$2;->this$0:Lcom/lge/hiddenmenu/china_test/LabTestSetting;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/china_test/LabTestSetting.smali src3/smali/com/lge/hiddenmenu/china_test/LabTestSetting.smali
+--- a/smali/com/lge/hiddenmenu/china_test/LabTestSetting.smali	2026-09-07 00:25:39.104468091 +0900
++++ b/smali/com/lge/hiddenmenu/china_test/LabTestSetting.smali	2026-09-07 02:27:04.407161677 +0900
+@@ -469,8 +469,6 @@
+ 
+     const/high16 v2, 0xd0000
+ 
+-    invoke-virtual {v0, v2, v1}, Lcom/android/internal/telephony/Phone;->getModemIntegerItem(ILandroid/os/Message;)V
+-
+     .line 68
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/china_test/RATMode.smali src3/smali/com/lge/hiddenmenu/china_test/RATMode.smali
+--- a/smali/com/lge/hiddenmenu/china_test/RATMode.smali	2026-09-07 00:25:39.104468091 +0900
++++ b/smali/com/lge/hiddenmenu/china_test/RATMode.smali	2026-09-07 02:27:04.407161677 +0900
+@@ -152,8 +152,6 @@
+     .line 123
+     iget-object v2, p0, Lcom/lge/hiddenmenu/china_test/RATMode;->NMPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v2, v4, v0}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 124
+     const-string v2, "persist.product.lge.radio.tdscdma_present"
+ 
+@@ -197,8 +195,6 @@
+     .line 117
+     iget-object v2, p0, Lcom/lge/hiddenmenu/china_test/RATMode;->NMPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v2, v4, v0}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 118
+     const-string v2, "persist.product.lge.radio.tdscdma_present"
+ 
+@@ -242,8 +238,6 @@
+     .line 112
+     iget-object v2, p0, Lcom/lge/hiddenmenu/china_test/RATMode;->NMPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v2, v4, v0}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 113
+     const-string v2, "persist.product.lge.radio.tdscdma_present"
+ 
+@@ -287,8 +281,6 @@
+     .line 107
+     iget-object v2, p0, Lcom/lge/hiddenmenu/china_test/RATMode;->NMPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v2, v4, v0}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 108
+     const-string v2, "persist.product.lge.radio.tdscdma_present"
+ 
+@@ -332,8 +324,6 @@
+     .line 102
+     iget-object v2, p0, Lcom/lge/hiddenmenu/china_test/RATMode;->NMPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v2, v4, v0}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 103
+     const-string v2, "persist.product.lge.radio.tdscdma_present"
+ 
+@@ -377,8 +367,6 @@
+     .line 97
+     iget-object v2, p0, Lcom/lge/hiddenmenu/china_test/RATMode;->NMPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v2, v4, v0}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 98
+     const-string v2, "persist.product.lge.radio.tdscdma_present"
+ 
+@@ -422,8 +410,6 @@
+     .line 92
+     iget-object v2, p0, Lcom/lge/hiddenmenu/china_test/RATMode;->NMPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v2, v4, v0}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+-
+     .line 93
+     const-string v2, "persist.product.lge.radio.tdscdma_present"
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/china_test/RATModeDS$MyHandler.smali src3/smali/com/lge/hiddenmenu/china_test/RATModeDS$MyHandler.smali
+--- a/smali/com/lge/hiddenmenu/china_test/RATModeDS$MyHandler.smali	2026-09-07 00:25:39.105468107 +0900
++++ b/smali/com/lge/hiddenmenu/china_test/RATModeDS$MyHandler.smali	2026-09-07 02:27:04.406161661 +0900
+@@ -438,8 +438,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v1, v2}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 291
+     :goto_0
+     return-void
+@@ -530,7 +528,6 @@
+     move-result-object v1
+ 
+     .line 301
+-    invoke-virtual {v2, v3, v1}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 304
+     const-string v1, "RATModeDS"
+diff -ruN src/smali/com/lge/hiddenmenu/china_test/RATModeDS.smali src3/smali/com/lge/hiddenmenu/china_test/RATModeDS.smali
+--- a/smali/com/lge/hiddenmenu/china_test/RATModeDS.smali	2026-09-07 00:25:39.105468107 +0900
++++ b/smali/com/lge/hiddenmenu/china_test/RATModeDS.smali	2026-09-07 02:27:04.405161646 +0900
+@@ -619,7 +619,6 @@
+     move-result-object v3
+ 
+     .line 191
+-    invoke-virtual {v7, v6, v3}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 169
+     .end local v2    # "SubId":I
+@@ -815,8 +814,6 @@
+ 
+     move-result-object v3
+ 
+-    invoke-virtual {v2, v3}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 134
+     :cond_0
+     add-int/lit8 v1, v1, 0x1
+diff -ruN src/smali/com/lge/hiddenmenu/china_test/TdsHoTestOnOff.smali src3/smali/com/lge/hiddenmenu/china_test/TdsHoTestOnOff.smali
+--- a/smali/com/lge/hiddenmenu/china_test/TdsHoTestOnOff.smali	2026-09-07 00:25:39.105468107 +0900
++++ b/smali/com/lge/hiddenmenu/china_test/TdsHoTestOnOff.smali	2026-09-07 02:27:04.404161630 +0900
+@@ -99,8 +99,6 @@
+     .line 48
+     iget-object v5, p0, Lcom/lge/hiddenmenu/china_test/TdsHoTestOnOff;->mPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v5, v4, v2, v3}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 49
+     const-string v3, "persist.product.lge.radio.tds_ho_test_onoff"
+ 
+@@ -162,8 +160,6 @@
+     :cond_0
+     iget-object v5, p0, Lcom/lge/hiddenmenu/china_test/TdsHoTestOnOff;->mPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v5, v4, v1, v3}, Lcom/android/internal/telephony/Phone;->setModemIntegerItem(IILandroid/os/Message;)V
+-
+     .line 56
+     const-string v3, "persist.product.lge.radio.tds_ho_test_onoff"
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/china_test/Test_Mode_Selection.smali src3/smali/com/lge/hiddenmenu/china_test/Test_Mode_Selection.smali
+--- a/smali/com/lge/hiddenmenu/china_test/Test_Mode_Selection.smali	2026-09-07 00:25:39.106468122 +0900
++++ b/smali/com/lge/hiddenmenu/china_test/Test_Mode_Selection.smali	2026-09-07 02:27:04.403161614 +0900
+@@ -367,16 +367,12 @@
+ 
+     const/4 v2, 0x0
+ 
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->getEngineeringModeInfo(ILandroid/os/Message;)V
+-
+     .line 63
+     iget-object v0, p0, Lcom/lge/hiddenmenu/china_test/Test_Mode_Selection;->mNMPhone:Lcom/android/internal/telephony/Phone;
+ 
+     const/4 v1, 0x0
+ 
+-    invoke-virtual {v0, v1}, Lcom/android/internal/telephony/Phone;->getEmodeInfoPage(I)Ljava/lang/String;
+-
+-    move-result-object v0
++    const-string v0, ""
+ 
+     sput-object v0, Lcom/lge/hiddenmenu/china_test/Test_Mode_Selection;->sCurrentMode:Ljava/lang/String;
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/dcm_only/NetworkMode$MyHandler.smali src3/smali/com/lge/hiddenmenu/dcm_only/NetworkMode$MyHandler.smali
+--- a/smali/com/lge/hiddenmenu/dcm_only/NetworkMode$MyHandler.smali	2026-09-07 00:25:39.112468214 +0900
++++ b/smali/com/lge/hiddenmenu/dcm_only/NetworkMode$MyHandler.smali	2026-09-07 02:27:04.388161377 +0900
+@@ -395,8 +395,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v1, v2}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 275
+     :goto_0
+     return-void
+@@ -472,7 +470,6 @@
+     move-result-object v2
+ 
+     .line 287
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 289
+     return-void
+diff -ruN src/smali/com/lge/hiddenmenu/dcm_only/NetworkMode.smali src3/smali/com/lge/hiddenmenu/dcm_only/NetworkMode.smali
+--- a/smali/com/lge/hiddenmenu/dcm_only/NetworkMode.smali	2026-09-07 00:25:39.112468214 +0900
++++ b/smali/com/lge/hiddenmenu/dcm_only/NetworkMode.smali	2026-09-07 02:27:04.388161377 +0900
+@@ -517,7 +517,6 @@
+     move-result-object v4
+ 
+     .line 141
+-    invoke-virtual {v3, v0, v4}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 147
+     .end local v0    # "buttonNetworkMode":I
+@@ -616,8 +615,6 @@
+ 
+     move-result-object v1
+ 
+-    invoke-virtual {v0, v1}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 112
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/dcm_protocol/NetworkMode$MyHandler.smali src3/smali/com/lge/hiddenmenu/dcm_protocol/NetworkMode$MyHandler.smali
+--- a/smali/com/lge/hiddenmenu/dcm_protocol/NetworkMode$MyHandler.smali	2026-09-07 00:25:39.117468291 +0900
++++ b/smali/com/lge/hiddenmenu/dcm_protocol/NetworkMode$MyHandler.smali	2026-09-07 02:27:04.382161282 +0900
+@@ -395,8 +395,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v1, v2}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 275
+     :goto_0
+     return-void
+@@ -472,7 +470,6 @@
+     move-result-object v2
+ 
+     .line 287
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 289
+     return-void
+diff -ruN src/smali/com/lge/hiddenmenu/dcm_protocol/NetworkMode.smali src3/smali/com/lge/hiddenmenu/dcm_protocol/NetworkMode.smali
+--- a/smali/com/lge/hiddenmenu/dcm_protocol/NetworkMode.smali	2026-09-07 00:25:39.117468291 +0900
++++ b/smali/com/lge/hiddenmenu/dcm_protocol/NetworkMode.smali	2026-09-07 02:27:04.383161298 +0900
+@@ -517,7 +517,6 @@
+     move-result-object v4
+ 
+     .line 141
+-    invoke-virtual {v3, v0, v4}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 147
+     .end local v0    # "buttonNetworkMode":I
+@@ -616,8 +615,6 @@
+ 
+     move-result-object v1
+ 
+-    invoke-virtual {v0, v1}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 112
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/fake_roaming/FakeRoaming$3.smali src3/smali/com/lge/hiddenmenu/fake_roaming/FakeRoaming$3.smali
+--- a/smali/com/lge/hiddenmenu/fake_roaming/FakeRoaming$3.smali	2026-09-07 00:25:39.119468322 +0900
++++ b/smali/com/lge/hiddenmenu/fake_roaming/FakeRoaming$3.smali	2026-09-07 02:27:04.380161250 +0900
+@@ -166,8 +166,6 @@
+ 
+     move-result-object v4
+ 
+-    invoke-virtual {v6, v7, v8, v4}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+-
+     .line 213
+     :cond_2
+     iget-object v4, p0, Lcom/lge/hiddenmenu/fake_roaming/FakeRoaming$3;->this$0:Lcom/lge/hiddenmenu/fake_roaming/FakeRoaming;
+@@ -254,7 +252,6 @@
+     move-result-object v8
+ 
+     .line 213
+-    invoke-virtual {v4, v6, v7, v8}, Lcom/android/internal/telephony/Phone;->setModemStringItem(ILjava/lang/String;Landroid/os/Message;)V
+ 
+     .line 225
+     if-nez v2, :cond_8
+diff -ruN src/smali/com/lge/hiddenmenu/hal/AccessoryHalInterface.smali src3/smali/com/lge/hiddenmenu/hal/AccessoryHalInterface.smali
+--- a/smali/com/lge/hiddenmenu/hal/AccessoryHalInterface.smali	2026-09-07 00:25:39.122468368 +0900
++++ b/smali/com/lge/hiddenmenu/hal/AccessoryHalInterface.smali	2026-09-07 02:47:27.312334711 +0900
+@@ -203,6 +203,7 @@
+ 
+     invoke-interface {v1, v2, v3, v4}, Lvendor/lge/hardware/accessory/V1_0/IAccessory;->linkToDeath(Landroid/os/IHwBinder$DeathRecipient;J)Z
+     :try_end_1
++    .catch Ljava/util/NoSuchElementException; {:try_start_1 .. :try_end_1} :catch_0
+     .catch Landroid/os/RemoteException; {:try_start_1 .. :try_end_1} :catch_0
+     .catchall {:try_start_1 .. :try_end_1} :catchall_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/hal/AodCommonHalInterface.smali src3/smali/com/lge/hiddenmenu/hal/AodCommonHalInterface.smali
+--- a/smali/com/lge/hiddenmenu/hal/AodCommonHalInterface.smali	2026-09-07 00:25:39.122468368 +0900
++++ b/smali/com/lge/hiddenmenu/hal/AodCommonHalInterface.smali	2026-09-07 02:47:27.312334711 +0900
+@@ -203,6 +203,7 @@
+ 
+     invoke-interface {v1, v2, v3, v4}, Lvendor/lge/hardware/aod/aodcommon/V1_0/IAodCommon;->linkToDeath(Landroid/os/IHwBinder$DeathRecipient;J)Z
+     :try_end_1
++    .catch Ljava/util/NoSuchElementException; {:try_start_1 .. :try_end_1} :catch_0
+     .catch Landroid/os/RemoteException; {:try_start_1 .. :try_end_1} :catch_0
+     .catchall {:try_start_1 .. :try_end_1} :catchall_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/hal/AodViewHalInterface.smali src3/smali/com/lge/hiddenmenu/hal/AodViewHalInterface.smali
+--- a/smali/com/lge/hiddenmenu/hal/AodViewHalInterface.smali	2026-09-07 00:25:39.123468384 +0900
++++ b/smali/com/lge/hiddenmenu/hal/AodViewHalInterface.smali	2026-09-07 02:47:27.312334711 +0900
+@@ -203,6 +203,7 @@
+ 
+     invoke-interface {v1, v2, v3, v4}, Lvendor/lge/hardware/aod/aodview/V1_0/IAodView;->linkToDeath(Landroid/os/IHwBinder$DeathRecipient;J)Z
+     :try_end_1
++    .catch Ljava/util/NoSuchElementException; {:try_start_1 .. :try_end_1} :catch_0
+     .catch Landroid/os/RemoteException; {:try_start_1 .. :try_end_1} :catch_0
+     .catchall {:try_start_1 .. :try_end_1} :catchall_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/hal/BatteryHalInterface.smali src3/smali/com/lge/hiddenmenu/hal/BatteryHalInterface.smali
+--- a/smali/com/lge/hiddenmenu/hal/BatteryHalInterface.smali	2026-09-07 00:25:39.128468460 +0900
++++ b/smali/com/lge/hiddenmenu/hal/BatteryHalInterface.smali	2026-09-07 02:47:27.312334711 +0900
+@@ -408,6 +408,7 @@
+ 
+     invoke-interface {v1, v2, v3, v4}, Lvendor/lge/hardware/battery/V1_0/IBattery;->linkToDeath(Landroid/os/IHwBinder$DeathRecipient;J)Z
+     :try_end_1
++    .catch Ljava/util/NoSuchElementException; {:try_start_1 .. :try_end_1} :catch_0
+     .catch Landroid/os/RemoteException; {:try_start_1 .. :try_end_1} :catch_0
+     .catchall {:try_start_1 .. :try_end_1} :catchall_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/hal/ChargerHalInterface.smali src3/smali/com/lge/hiddenmenu/hal/ChargerHalInterface.smali
+--- a/smali/com/lge/hiddenmenu/hal/ChargerHalInterface.smali	2026-09-07 00:25:39.131468507 +0900
++++ b/smali/com/lge/hiddenmenu/hal/ChargerHalInterface.smali	2026-09-07 02:47:27.312334711 +0900
+@@ -244,6 +244,7 @@
+ 
+     invoke-interface {v1, v2, v3, v4}, Lvendor/lge/hardware/charger/V1_0/ICharger;->linkToDeath(Landroid/os/IHwBinder$DeathRecipient;J)Z
+     :try_end_1
++    .catch Ljava/util/NoSuchElementException; {:try_start_1 .. :try_end_1} :catch_0
+     .catch Landroid/os/RemoteException; {:try_start_1 .. :try_end_1} :catch_0
+     .catchall {:try_start_1 .. :try_end_1} :catchall_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/hal/DisplayBrightnessHalInterface.smali src3/smali/com/lge/hiddenmenu/hal/DisplayBrightnessHalInterface.smali
+--- a/smali/com/lge/hiddenmenu/hal/DisplayBrightnessHalInterface.smali	2026-09-07 00:25:39.133468537 +0900
++++ b/smali/com/lge/hiddenmenu/hal/DisplayBrightnessHalInterface.smali	2026-09-07 02:47:27.313334726 +0900
+@@ -203,6 +203,7 @@
+ 
+     invoke-interface {v1, v2, v3, v4}, Lvendor/lge/hardware/display/brightness/V1_0/IDisplayBrightness;->linkToDeath(Landroid/os/IHwBinder$DeathRecipient;J)Z
+     :try_end_1
++    .catch Ljava/util/NoSuchElementException; {:try_start_1 .. :try_end_1} :catch_0
+     .catch Landroid/os/RemoteException; {:try_start_1 .. :try_end_1} :catch_0
+     .catchall {:try_start_1 .. :try_end_1} :catchall_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/hal/LgeUsbHalInterface.smali src3/smali/com/lge/hiddenmenu/hal/LgeUsbHalInterface.smali
+--- a/smali/com/lge/hiddenmenu/hal/LgeUsbHalInterface.smali	2026-09-07 00:25:39.134468553 +0900
++++ b/smali/com/lge/hiddenmenu/hal/LgeUsbHalInterface.smali	2026-09-07 02:47:27.313334726 +0900
+@@ -203,6 +203,7 @@
+ 
+     invoke-interface {v1, v2, v3, v4}, Lvendor/lge/hardware/usb/V1_0/ILgeUsb;->linkToDeath(Landroid/os/IHwBinder$DeathRecipient;J)Z
+     :try_end_1
++    .catch Ljava/util/NoSuchElementException; {:try_start_1 .. :try_end_1} :catch_0
+     .catch Landroid/os/RemoteException; {:try_start_1 .. :try_end_1} :catch_0
+     .catchall {:try_start_1 .. :try_end_1} :catchall_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/hal/LightExHalInterface.smali src3/smali/com/lge/hiddenmenu/hal/LightExHalInterface.smali
+--- a/smali/com/lge/hiddenmenu/hal/LightExHalInterface.smali	2026-09-07 00:25:39.136468583 +0900
++++ b/smali/com/lge/hiddenmenu/hal/LightExHalInterface.smali	2026-09-07 02:47:27.313334726 +0900
+@@ -276,6 +276,7 @@
+ 
+     invoke-interface {v1, v2, v3, v4}, Lvendor/lge/hardware/light/V1_0/ILightEx;->linkToDeath(Landroid/os/IHwBinder$DeathRecipient;J)Z
+     :try_end_1
++    .catch Ljava/util/NoSuchElementException; {:try_start_1 .. :try_end_1} :catch_0
+     .catch Landroid/os/RemoteException; {:try_start_1 .. :try_end_1} :catch_0
+     .catchall {:try_start_1 .. :try_end_1} :catchall_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/hal/LpwgHalInterface.smali src3/smali/com/lge/hiddenmenu/hal/LpwgHalInterface.smali
+--- a/smali/com/lge/hiddenmenu/hal/LpwgHalInterface.smali	2026-09-07 00:25:39.138468614 +0900
++++ b/smali/com/lge/hiddenmenu/hal/LpwgHalInterface.smali	2026-09-07 02:47:27.313334726 +0900
+@@ -203,6 +203,7 @@
+ 
+     invoke-interface {v1, v2, v3, v4}, Lvendor/lge/hardware/lpwg/V1_0/ILpwg;->linkToDeath(Landroid/os/IHwBinder$DeathRecipient;J)Z
+     :try_end_1
++    .catch Ljava/util/NoSuchElementException; {:try_start_1 .. :try_end_1} :catch_0
+     .catch Landroid/os/RemoteException; {:try_start_1 .. :try_end_1} :catch_0
+     .catchall {:try_start_1 .. :try_end_1} :catchall_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/hal/ThermalHalInterface.smali src3/smali/com/lge/hiddenmenu/hal/ThermalHalInterface.smali
+--- a/smali/com/lge/hiddenmenu/hal/ThermalHalInterface.smali	2026-09-07 00:25:39.144468707 +0900
++++ b/smali/com/lge/hiddenmenu/hal/ThermalHalInterface.smali	2026-09-07 02:47:27.313334726 +0900
+@@ -203,6 +203,7 @@
+ 
+     invoke-interface {v1, v2, v3, v4}, Lvendor/lge/hardware/thermal/V1_0/IThermal;->linkToDeath(Landroid/os/IHwBinder$DeathRecipient;J)Z
+     :try_end_1
++    .catch Ljava/util/NoSuchElementException; {:try_start_1 .. :try_end_1} :catch_0
+     .catch Landroid/os/RemoteException; {:try_start_1 .. :try_end_1} :catch_0
+     .catchall {:try_start_1 .. :try_end_1} :catchall_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/ims/RcsSettings.smali src3/smali/com/lge/hiddenmenu/ims/RcsSettings.smali
+--- a/smali/com/lge/hiddenmenu/ims/RcsSettings.smali	2026-09-07 00:25:39.145468722 +0900
++++ b/smali/com/lge/hiddenmenu/ims/RcsSettings.smali	2026-09-07 03:39:52.190448070 +0900
+@@ -251,3 +251,30 @@
+     .line 48
+     return-void
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/app/Activity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "RcsSettings"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/jcm_only/NetworkMode$MyHandler.smali src3/smali/com/lge/hiddenmenu/jcm_only/NetworkMode$MyHandler.smali
+--- a/smali/com/lge/hiddenmenu/jcm_only/NetworkMode$MyHandler.smali	2026-09-07 00:25:39.149468784 +0900
++++ b/smali/com/lge/hiddenmenu/jcm_only/NetworkMode$MyHandler.smali	2026-09-07 02:27:04.337160571 +0900
+@@ -395,8 +395,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v1, v2}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 276
+     :goto_0
+     return-void
+@@ -472,7 +470,6 @@
+     move-result-object v2
+ 
+     .line 288
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 290
+     return-void
+diff -ruN src/smali/com/lge/hiddenmenu/jcm_only/NetworkMode.smali src3/smali/com/lge/hiddenmenu/jcm_only/NetworkMode.smali
+--- a/smali/com/lge/hiddenmenu/jcm_only/NetworkMode.smali	2026-09-07 00:25:39.150468799 +0900
++++ b/smali/com/lge/hiddenmenu/jcm_only/NetworkMode.smali	2026-09-07 02:27:04.336160555 +0900
+@@ -517,7 +517,6 @@
+     move-result-object v4
+ 
+     .line 142
+-    invoke-virtual {v3, v0, v4}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 148
+     .end local v0    # "buttonNetworkMode":I
+@@ -616,8 +615,6 @@
+ 
+     move-result-object v1
+ 
+-    invoke-virtual {v0, v1}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 113
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/kddi_only/NetworkMode$MyHandler.smali src3/smali/com/lge/hiddenmenu/kddi_only/NetworkMode$MyHandler.smali
+--- a/smali/com/lge/hiddenmenu/kddi_only/NetworkMode$MyHandler.smali	2026-09-07 00:25:39.155468876 +0900
++++ b/smali/com/lge/hiddenmenu/kddi_only/NetworkMode$MyHandler.smali	2026-09-07 02:27:04.322160334 +0900
+@@ -395,8 +395,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v1, v2}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 275
+     :goto_0
+     return-void
+@@ -472,7 +470,6 @@
+     move-result-object v2
+ 
+     .line 287
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 289
+     return-void
+diff -ruN src/smali/com/lge/hiddenmenu/kddi_only/NetworkMode.smali src3/smali/com/lge/hiddenmenu/kddi_only/NetworkMode.smali
+--- a/smali/com/lge/hiddenmenu/kddi_only/NetworkMode.smali	2026-09-07 00:25:39.155468876 +0900
++++ b/smali/com/lge/hiddenmenu/kddi_only/NetworkMode.smali	2026-09-07 02:27:04.321160318 +0900
+@@ -517,7 +517,6 @@
+     move-result-object v4
+ 
+     .line 141
+-    invoke-virtual {v3, v0, v4}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 147
+     .end local v0    # "buttonNetworkMode":I
+@@ -616,8 +615,6 @@
+ 
+     move-result-object v1
+ 
+-    invoke-virtual {v0, v1}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 112
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/lgSrvLGMmsTest/LgSrvLGMmsTest.smali src3/smali/com/lge/hiddenmenu/lgSrvLGMmsTest/LgSrvLGMmsTest.smali
+--- a/smali/com/lge/hiddenmenu/lgSrvLGMmsTest/LgSrvLGMmsTest.smali	2026-09-07 00:25:39.157468906 +0900
++++ b/smali/com/lge/hiddenmenu/lgSrvLGMmsTest/LgSrvLGMmsTest.smali	2026-09-07 03:39:52.190448070 +0900
+@@ -222,3 +222,30 @@
+     .line 37
+     return-void
+ .end method
++
++# Several of the entries here hand off to an LG app that is not part of this
++# build. Catching it once at the activity keeps every one of them from taking
++# the process down: the entry stays listed and does nothing.
++.method public startActivity(Landroid/content/Intent;)V
++    .locals 2
++
++    :try_start_0
++    invoke-super {p0, p1}, Landroid/app/ListActivity;->startActivity(Landroid/content/Intent;)V
++    :try_end_0
++    .catch Landroid/content/ActivityNotFoundException; {:try_start_0 .. :try_end_0} :catch_0
++
++    return-void
++
++    :catch_0
++    move-exception v0
++
++    const-string v1, "LgSrvLGMmsTest"
++
++    invoke-virtual {v0}, Landroid/content/ActivityNotFoundException;->getMessage()Ljava/lang/String;
++
++    move-result-object v0
++
++    invoke-static {v1, v0}, Landroid/util/Log;->w(Ljava/lang/String;Ljava/lang/String;)I
++
++    return-void
++.end method
+diff -ruN src/smali/com/lge/hiddenmenu/sb_protocol/NetworkMode$MyHandler.smali src3/smali/com/lge/hiddenmenu/sb_protocol/NetworkMode$MyHandler.smali
+--- a/smali/com/lge/hiddenmenu/sb_protocol/NetworkMode$MyHandler.smali	2026-09-07 00:25:39.159468937 +0900
++++ b/smali/com/lge/hiddenmenu/sb_protocol/NetworkMode$MyHandler.smali	2026-09-07 02:27:04.318160271 +0900
+@@ -395,8 +395,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v1, v2}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 275
+     :goto_0
+     return-void
+@@ -472,7 +470,6 @@
+     move-result-object v2
+ 
+     .line 287
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 289
+     return-void
+diff -ruN src/smali/com/lge/hiddenmenu/sb_protocol/NetworkMode.smali src3/smali/com/lge/hiddenmenu/sb_protocol/NetworkMode.smali
+--- a/smali/com/lge/hiddenmenu/sb_protocol/NetworkMode.smali	2026-09-07 00:25:39.159468937 +0900
++++ b/smali/com/lge/hiddenmenu/sb_protocol/NetworkMode.smali	2026-09-07 02:27:04.317160255 +0900
+@@ -517,7 +517,6 @@
+     move-result-object v4
+ 
+     .line 141
+-    invoke-virtual {v3, v0, v4}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 147
+     .end local v0    # "buttonNetworkMode":I
+@@ -616,8 +615,6 @@
+ 
+     move-result-object v1
+ 
+-    invoke-virtual {v0, v1}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 112
+     return-void
+ .end method
+diff -ruN src/smali/com/lge/hiddenmenu/trf_only/SystemSelection$MyHandler.smali src3/smali/com/lge/hiddenmenu/trf_only/SystemSelection$MyHandler.smali
+--- a/smali/com/lge/hiddenmenu/trf_only/SystemSelection$MyHandler.smali	2026-09-07 00:25:39.162468983 +0900
++++ b/smali/com/lge/hiddenmenu/trf_only/SystemSelection$MyHandler.smali	2026-09-07 02:27:04.312160176 +0900
+@@ -397,8 +397,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v1, v2}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 252
+     :goto_0
+     return-void
+@@ -479,7 +477,6 @@
+     move-result-object v2
+ 
+     .line 260
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 263
+     return-void
+diff -ruN src/smali/com/lge/hiddenmenu/trf_only/SystemSelection.smali src3/smali/com/lge/hiddenmenu/trf_only/SystemSelection.smali
+--- a/smali/com/lge/hiddenmenu/trf_only/SystemSelection.smali	2026-09-07 00:25:39.162468983 +0900
++++ b/smali/com/lge/hiddenmenu/trf_only/SystemSelection.smali	2026-09-07 02:27:04.313160192 +0900
+@@ -744,7 +744,6 @@
+     move-result-object v5
+ 
+     .line 157
+-    invoke-virtual {v4, v3, v5}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 163
+     .end local v0    # "buttonNetworkMode":I
+@@ -890,8 +889,6 @@
+ 
+     move-result-object v1
+ 
+-    invoke-virtual {v0, v1}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 104
+     :cond_0
+     return-void
+diff -ruN src/smali/com/lge/hiddenmenu/updt/DataDebugScreen.smali src3/smali/com/lge/hiddenmenu/updt/DataDebugScreen.smali
+--- a/smali/com/lge/hiddenmenu/updt/DataDebugScreen.smali	2026-09-07 00:30:21.112804971 +0900
++++ b/smali/com/lge/hiddenmenu/updt/DataDebugScreen.smali	2026-09-07 04:30:28.934578657 +0900
+@@ -359,7 +359,9 @@
+     .local v0, "temp_str":Ljava/lang/String;
+     iget-object v3, v1, Lcom/lge/hiddenmenu/updt/DataDebugScreen;->mPhone:Lcom/android/internal/telephony/Phone;
+ 
+-    invoke-virtual {v3}, Lcom/android/internal/telephony/Phone;->getDataConnectionState()Lcom/android/internal/telephony/PhoneConstants$DataState;
++    const-string v4, "default"
++
++    invoke-virtual {v3, v4}, Lcom/android/internal/telephony/Phone;->getDataConnectionState(Ljava/lang/String;)Lcom/android/internal/telephony/PhoneConstants$DataState;
+ 
+     move-result-object v3
+ 
+@@ -504,7 +506,7 @@
+ 
+     const v15, 0x20b0010
+ 
+-    const v14, 0x1f0
++    const/4 v14, 0x0
+ 
+     if-lez v14, :cond_0
+ 
+diff -ruN src/smali/com/lge/hiddenmenu/vzw_only/SystemSelection$MyHandler.smali src3/smali/com/lge/hiddenmenu/vzw_only/SystemSelection$MyHandler.smali
+--- a/smali/com/lge/hiddenmenu/vzw_only/SystemSelection$MyHandler.smali	2026-09-07 00:25:39.182469291 +0900
++++ b/smali/com/lge/hiddenmenu/vzw_only/SystemSelection$MyHandler.smali	2026-09-07 02:27:04.270159512 +0900
+@@ -732,8 +732,6 @@
+ 
+     move-result-object v2
+ 
+-    invoke-virtual {v1, v2}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+-
+     .line 579
+     :goto_1
+     return-void
+@@ -832,7 +830,6 @@
+     move-result-object v2
+ 
+     .line 592
+-    invoke-virtual {v0, v1, v2}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 595
+     return-void
+diff -ruN src/smali/com/lge/hiddenmenu/vzw_only/SystemSelection.smali src3/smali/com/lge/hiddenmenu/vzw_only/SystemSelection.smali
+--- a/smali/com/lge/hiddenmenu/vzw_only/SystemSelection.smali	2026-09-07 00:25:39.183469306 +0900
++++ b/smali/com/lge/hiddenmenu/vzw_only/SystemSelection.smali	2026-09-07 02:27:04.268159481 +0900
+@@ -907,7 +907,6 @@
+     move-result-object v6
+ 
+     .line 342
+-    invoke-virtual {v5, v4, v6}, Lcom/android/internal/telephony/Phone;->setPreferredNetworkType(ILandroid/os/Message;)V
+ 
+     .line 346
+     if-eqz v0, :cond_4
+@@ -923,8 +922,6 @@
+ 
+     move-result-object v6
+ 
+-    invoke-virtual {v5, v6}, Lcom/android/internal/telephony/Phone;->setLge5GEnabled(Landroid/os/Message;)V
+-
+     goto :goto_1
+ 
+     .line 349
+@@ -939,8 +936,6 @@
+ 
+     move-result-object v6
+ 
+-    invoke-virtual {v5, v6}, Lcom/android/internal/telephony/Phone;->setLge5GDisabled(Landroid/os/Message;)V
+-
+     .line 354
+     .end local v0    # "is_5g_enable":Z
+     .end local v2    # "buttonNetworkMode":I
+@@ -1105,7 +1100,6 @@
+     move-result-object v1
+ 
+     .line 221
+-    invoke-virtual {v0, v1}, Lcom/android/internal/telephony/Phone;->getPreferredNetworkType(Landroid/os/Message;)V
+ 
+     .line 227
+     :cond_0

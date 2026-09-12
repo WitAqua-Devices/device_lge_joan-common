@@ -914,7 +914,7 @@ vendor/lib64/hw/vulkan.msm8998.so|d9c347b5fcd1c821c4b1d958a82f1b992257f127
 # signature level, and priv-app would pull in a privapp-permissions list to
 # get wrong. The com.lge.* APIs it calls that LG kept in their framework.jar
 # are in framework/lge/ - com.lge.os.Build and the AT command client.
-product/app/HiddenMenu/HiddenMenu.apk:system/app/HiddenMenu/HiddenMenu.apk|eed9f0dea1524fe08a97f893eb5a2765d7bbb12c|140c4ee5544499900aa95fa2c79296745057c165
+product/app/HiddenMenu/HiddenMenu.apk:system/app/HiddenMenu/HiddenMenu.apk|eed9f0dea1524fe08a97f893eb5a2765d7bbb12c|7fa1de5f8b62e2b86e3f424c8cccbc4fc32aabcd
 
 # Hotword Enrollment
 product/priv-app/HotwordEnrollmentOKGoogleHEXAGON/HotwordEnrollmentOKGoogleHEXAGON.apk
