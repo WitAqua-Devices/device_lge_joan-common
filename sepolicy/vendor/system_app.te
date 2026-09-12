@@ -1,8 +1,21 @@
 binder_call(system_app, {
+    hal_lge_atcmd_default
+    hal_lge_diag_default
+    hal_lge_usb_default
     hal_power_default
     vold
     wificond
 });
+
+# The hidden menu talks to LG's own HALs directly, and a HIDL lookup that
+# finds nothing throws rather than returning null - the class initialiser of
+# the caller dies with it and the activity never opens.
+allow system_app {
+    hal_lge_atcmd_hwservice
+    hal_lge_diag_hwservice
+    hal_lge_usb_hwservice
+}:hwservice_manager find;
+hwbinder_use(system_app)
 
 get_prop(system_app, {
     baseband_prop
@@ -13,6 +26,15 @@ r_dir_file(system_app, {
     proc_pagetypeinfo
     proc_vmallocinfo
     sysfs_zram
+});
+
+# The hidden menu's battery and power screens read the fuel gauge and LG's own
+# procfs by hand rather than through a HAL - the battery graph divides by what
+# it reads from charge_full_design, so a denial there is a divide by zero.
+r_dir_file(system_app, {
+    proc_lge_power
+    sysfs_battery_supply
+    sysfs_lge_power
 });
 
 allow system_app sysfs_lge_fingerprint:dir r_dir_perms;

@@ -12,3 +12,18 @@ vendor.qti.hardware.slmadapter::ISlmAdapter								u:object_r:vendor_hal_slmadap
 vendor.lge.hardware.mtv::ILgeMtv						u:object_r:hal_lge_mtv_hwservice:s0
 vendor.lge.hardware.dvb::ILgeDvb						u:object_r:hal_lge_dvb_hwservice:s0
 vendor.lge.hardware.dvb::ILgeRmp						u:object_r:hal_lge_dvb_hwservice:s0
+
+# USB
+vendor.lge.hardware.usb::ILgeUsb						u:object_r:hal_lge_usb_hwservice:s0
+vendor.lge.hardware.usb.uevent::IUsbUEvent			u:object_r:hal_lge_usb_hwservice:s0
+
+# Diagnostic HALs
+vendor.lge.hardware.battery::IBattery				u:object_r:hal_lge_diag_hwservice:s0
+vendor.lge.hardware.charger::ICharger				u:object_r:hal_lge_diag_hwservice:s0
+vendor.lge.hardware.platform::IPlatform				u:object_r:hal_lge_diag_hwservice:s0
+vendor.lge.hardware.securefuse::ISecureFuse			u:object_r:hal_lge_diag_hwservice:s0
+vendor.lge.hardware.sensortest::ISensorTest			u:object_r:hal_lge_diag_hwservice:s0
+vendor.lge.hardware.thermal::IThermal				u:object_r:hal_lge_diag_hwservice:s0
+
+# AT command
+vendor.lge.hardware.lgatcmd::ILgAtCmd				u:object_r:hal_lge_atcmd_hwservice:s0

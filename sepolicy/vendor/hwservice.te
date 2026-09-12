@@ -1,1 +1,4 @@
 type vendor_hal_slmadapter_hwservice, hwservice_manager_type, protected_hwservice;
+type hal_lge_usb_hwservice, hwservice_manager_type;
+type hal_lge_diag_hwservice, hwservice_manager_type;
+type hal_lge_atcmd_hwservice, hwservice_manager_type;

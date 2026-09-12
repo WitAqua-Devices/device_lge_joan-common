@@ -29,3 +29,6 @@ persist.vendor.timeadjust					u:object_r:vendor_timekeep_prop:s0
 
 # vendor_lge_build_prop
 ro.vendor.lge.								u:object_r:vendor_lge_build_prop:s0
+
+# vendor_lge_factory_prop
+vendor.lge.factory.							u:object_r:vendor_lge_factory_prop:s0

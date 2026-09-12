@@ -1,0 +1,83 @@
+# LG's factory AT command daemon, and the HIDL HAL in front of it. The SVC
+# screens read their identity values through this: HiddenMenu -> LGATCMDClient
+# -> LGATCMDService -> ILgAtCmd -> atd -> /dev/at_mdm0.
+type atd, domain;
+type atd_exec, exec_type, vendor_file_type, file_type;
+init_daemon_domain(atd)
+
+# The AT channel into the modem, which is what every value here comes from,
+# and the diag node the factory commands ride on.
+allow atd at_device:chr_file rw_file_perms;
+allow atd diag_device:chr_file rw_file_perms;
+
+# init starts it as root and it drops to system itself, chowning the files it
+# leaves behind on the way.
+allow atd self:capability { chown setgid setuid };
+
+# It talks to the modem over a socket of its own as well as the AT node, and
+# listens for uevents while it is at it.
+allow atd self:socket create_socket_perms_no_ioctl;
+allow atd self:netlink_kobject_uevent_socket create_socket_perms_no_ioctl;
+
+# setgid on a file it creates as root before dropping to system.
+allow atd self:capability fsetid;
+
+# Its own store: /dev/block/by-name/ftm is the factory partition, and it
+# chmods it on the way in, so setattr comes with the read and write.
+allow atd block_device:dir search;
+allow atd ftm_block_device:blk_file { rw_file_perms setattr };
+
+# It looks under /cache for somewhere to save logs. A vendor domain may only
+# reach /data/vendor - core_data_file_type is a treble neverallow - and its
+# init script already makes /data/vendor/factory for exactly that.
+dontaudit atd cache_file:dir search;
+
+# atd also chmods boot and abl as it starts. Nothing it does for the hidden
+# menu needs either, and a factory daemon that can write the bootloader is not
+# something to hand out, so they stay refused - quietly, since it tries on
+# every boot and failing changes nothing it goes on to do.
+dontaudit atd boot_block_device:blk_file { getattr setattr };
+dontaudit atd block_device:blk_file { getattr setattr open read write };
+
+# Battery and power state, the same numbers the diagnostic HALs report.
+r_dir_file(atd, proc_lge_power)
+r_dir_file(atd, sysfs_battery_supply)
+r_dir_file(atd, sysfs_batteryinfo)
+
+# The gadget configfs, which it walks to find the usb function to lock.
+r_dir_file(atd, configfs)
+
+set_prop(atd, vendor_lge_factory_prop)
+set_prop(atd, vendor_lge_build_prop)
+
+# dac_override and net_admin are for the factory network and USB tests, which
+# nothing here drives - the identity values the hidden menu reads come back
+# without them. Refused, and kept out of the log because atd asks on every
+# request.
+dontaudit atd self:capability { dac_override net_admin };
+
+# The HAL in front of it.
+type hal_lge_atcmd_default, domain;
+type hal_lge_atcmd_default_exec, exec_type, vendor_file_type, file_type;
+init_daemon_domain(hal_lge_atcmd_default)
+
+hwbinder_use(hal_lge_atcmd_default)
+add_hwservice(hal_lge_atcmd_default, hal_lge_atcmd_hwservice)
+get_prop(hal_lge_atcmd_default, hwservicemanager_prop)
+
+# The socket atd's init script publishes; the HAL is the only thing that
+# connects to it.
+# Every socket ioctl has to be named: a bare allow would carry the whole set,
+# which is neverallowxperm. LG's are a private group in 0xc3xx - c302 and c304
+# seen so far, and refusing one hangs the request rather than failing it, which
+# comes back as an ANR in whatever screen asked. The range is theirs; nothing
+# in the standard socket ioctl set lives there.
+allow hal_lge_atcmd_default self:socket create_socket_perms;
+allowxperm hal_lge_atcmd_default self:socket ioctl { 0xc300-0xc3ff };
+allow hal_lge_atcmd_default atd_socket:sock_file write;
+allow hal_lge_atcmd_default atd:unix_stream_socket connectto;
+
+# It reads and writes the factory partition directly as well as going through
+# atd - the identity values live there, and it keeps its own bookkeeping.
+allow hal_lge_atcmd_default block_device:dir search;
+allow hal_lge_atcmd_default ftm_block_device:blk_file rw_file_perms;

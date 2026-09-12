@@ -1,0 +1,43 @@
+# LG's diagnostic HALs: battery, charger, platform, securefuse, sensortest and
+# thermal. They are one domain rather than six because they are one thing -
+# read-only taps on /proc/lge_power that exist so the hidden menu's SVC and
+# version screens have something to ask. Nothing else on the device talks to
+# them, and splitting them would only duplicate the same three rules.
+type hal_lge_diag_default, domain;
+type hal_lge_diag_default_exec, exec_type, vendor_file_type, file_type;
+init_daemon_domain(hal_lge_diag_default)
+
+hwbinder_use(hal_lge_diag_default)
+add_hwservice(hal_lge_diag_default, hal_lge_diag_hwservice)
+
+# LG's own procfs: battery and charger state, the pcb revision and speed bin,
+# and the thermal ADC channels. Everything these HALs report comes from here.
+allow hal_lge_diag_default proc_lge_power:dir r_dir_perms;
+allow hal_lge_diag_default proc_lge_power:file rw_file_perms;
+
+# LG's unified-nodes sysfs and the charger's power supply directory - the
+# same numbers as /proc/lge_power, reached the other way round.
+r_dir_file(hal_lge_diag_default, sysfs_lge_power)
+r_dir_file(hal_lge_diag_default, sysfs_batteryinfo)
+r_dir_file(hal_lge_diag_default, sysfs_battery_supply)
+
+# The qfprom secure-boot fuse versions, the eMMC identity and lifetime, and
+# the cpufreq nodes the platform HAL reads for the clock readout.
+allow hal_lge_diag_default sysfs:dir r_dir_perms;
+allow hal_lge_diag_default sysfs:file rw_file_perms;
+
+# The platform HAL reads the sudden-momentary-power-loss boot flag straight
+# out of the misc partition. That is not something it can be given: reading
+# misc is neverallowed outside a fixed list of core domains (bootctl, vold,
+# update_engine and friends), and joan has no reason to be on it. The counter
+# reads as zero and the screen still opens, so this is only kept out of the
+# audit log.
+dontaudit hal_lge_diag_default block_device:dir search;
+dontaudit hal_lge_diag_default misc_block_device:blk_file r_file_perms;
+
+# The thermal one opens a socket of its own to reach the thermal daemon.
+allow hal_lge_diag_default self:socket create_socket_perms_no_ioctl;
+
+# Same as the mtv HAL: hwbinder_use does not cover reading the readiness
+# property, and without it registration never gets started.
+get_prop(hal_lge_diag_default, hwservicemanager_prop)

@@ -1,0 +1,32 @@
+# LG's own type-C HAL. It is what the USB section of the hidden menu is written
+# against - moisture detection, the PHY tune values and the LVS compliance
+# test all go through it, and there is no AOSP interface that carries any of
+# them.
+type hal_lge_usb_default, domain;
+type hal_lge_usb_default_exec, exec_type, vendor_file_type, file_type;
+init_daemon_domain(hal_lge_usb_default)
+
+hwbinder_use(hal_lge_usb_default)
+add_hwservice(hal_lge_usb_default, hal_lge_usb_hwservice)
+
+# Port state and moisture detection: the dual_role_usb class device the pd phy
+# driver puts up, and the charger's usb power supply next to it.
+allow hal_lge_usb_default sysfs_usbpd_device:dir r_dir_perms;
+allow hal_lge_usb_default sysfs_usbpd_device:file rw_file_perms;
+allow hal_lge_usb_default sysfs_usb_supply:dir r_dir_perms;
+allow hal_lge_usb_default sysfs_usb_supply:file rw_file_perms;
+
+# The PHY tune overrides are module parameters rather than device attributes,
+# so they need a type of their own (genfs_contexts).
+allow hal_lge_usb_default sysfs_lge_usb:dir r_dir_perms;
+allow hal_lge_usb_default sysfs_lge_usb:file rw_file_perms;
+
+# The rest is unlabelled kernel sysfs: the udc link speed, the gadget's ncm
+# node, and /sys/bus/usb, which the compliance test walks by hand to find the
+# device it then hands to the lvs driver by writing the unbind/new_id files.
+allow hal_lge_usb_default sysfs:dir r_dir_perms;
+allow hal_lge_usb_default sysfs:file rw_file_perms;
+
+# Same as the mtv HAL: hwbinder_use does not cover reading the readiness
+# property, and without it registration never gets started.
+get_prop(hal_lge_usb_default, hwservicemanager_prop)

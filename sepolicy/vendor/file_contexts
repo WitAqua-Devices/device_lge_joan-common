@@ -32,3 +32,20 @@
 # Full-seg TV
 /(vendor|system/vendor)/bin/hw/vendor\.lge\.hardware\.mtv@1\.0-service		u:object_r:hal_lge_mtv_default_exec:s0
 /(vendor|system/vendor)/bin/hw/vendor\.lge\.hardware\.dvb@1\.0-service		u:object_r:hal_lge_dvb_default_exec:s0
+
+# USB
+/(vendor|system/vendor)/bin/hw/vendor\.lge\.hardware\.usb@1\.0-service		u:object_r:hal_lge_usb_default_exec:s0
+
+# Diagnostic HALs
+/(vendor|system/vendor)/bin/hw/vendor\.lge\.hardware\.battery@1\.0-service		u:object_r:hal_lge_diag_default_exec:s0
+/(vendor|system/vendor)/bin/hw/vendor\.lge\.hardware\.charger@1\.0-service		u:object_r:hal_lge_diag_default_exec:s0
+/(vendor|system/vendor)/bin/hw/vendor\.lge\.hardware\.platform@1\.1-service		u:object_r:hal_lge_diag_default_exec:s0
+/(vendor|system/vendor)/bin/hw/vendor\.lge\.hardware\.securefuse@1\.0-service	u:object_r:hal_lge_diag_default_exec:s0
+/(vendor|system/vendor)/bin/hw/vendor\.lge\.hardware\.sensortest@1\.0-service	u:object_r:hal_lge_diag_default_exec:s0
+/(vendor|system/vendor)/bin/hw/vendor\.lge\.hardware\.thermal@1\.0-service		u:object_r:hal_lge_diag_default_exec:s0
+
+# AT command
+/(vendor|system/vendor)/bin/atd											u:object_r:atd_exec:s0
+/(vendor|system/vendor)/bin/hw/vendor\.lge\.hardware\.lgatcmd@1\.0-service	u:object_r:hal_lge_atcmd_default_exec:s0
+/dev/socket/atd															u:object_r:atd_socket:s0
+/dev/block/platform/soc/1da4000\.ufshc/by-name/ftm						u:object_r:ftm_block_device:s0

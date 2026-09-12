@@ -26,3 +26,9 @@ genfscon sysfs /devices/virtual/input/mice																					u:object_r:sysfs_
 genfscon sysfs /devices/virtual/panel/img_tune																				u:object_r:sysfs_livedisplay_tuneable:s0
 
 genfscon sysfs /devices/vendor/vendor:lge-veneer-psy/power_supply/veneer													u:object_r:sysfs_lge_power:s0
+
+genfscon sysfs /module/phy_msm_qusb/parameters																				u:object_r:sysfs_lge_usb:s0
+genfscon sysfs /module/phy_msm_qusb_v2/parameters																			u:object_r:sysfs_lge_usb:s0
+genfscon sysfs /module/phy_msm_snps_hs/parameters																			u:object_r:sysfs_lge_usb:s0
+
+genfscon proc /lge_power																										u:object_r:proc_lge_power:s0

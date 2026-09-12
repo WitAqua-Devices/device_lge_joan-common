@@ -44,6 +44,78 @@
         </interface>
     </hal>
     <hal format="hidl" optional="true">
+        <name>vendor.lge.hardware.lgatcmd</name>
+        <version>1.0</version>
+        <interface>
+            <name>ILgAtCmd</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="hidl" optional="true">
+        <name>vendor.lge.hardware.battery</name>
+        <version>1.0</version>
+        <interface>
+            <name>IBattery</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="hidl" optional="true">
+        <name>vendor.lge.hardware.charger</name>
+        <version>1.0</version>
+        <interface>
+            <name>ICharger</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="hidl" optional="true">
+        <name>vendor.lge.hardware.platform</name>
+        <version>1.1</version>
+        <interface>
+            <name>IPlatform</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="hidl" optional="true">
+        <name>vendor.lge.hardware.securefuse</name>
+        <version>1.0</version>
+        <interface>
+            <name>ISecureFuse</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="hidl" optional="true">
+        <name>vendor.lge.hardware.sensortest</name>
+        <version>1.0</version>
+        <interface>
+            <name>ISensorTest</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="hidl" optional="true">
+        <name>vendor.lge.hardware.thermal</name>
+        <version>1.0</version>
+        <interface>
+            <name>IThermal</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="hidl" optional="true">
+        <name>vendor.lge.hardware.usb</name>
+        <version>1.0</version>
+        <interface>
+            <name>ILgeUsb</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="hidl" optional="true">
+        <name>vendor.lge.hardware.usb.uevent</name>
+        <version>1.0</version>
+        <interface>
+            <name>IUsbUEvent</name>
+            <instance>default</instance>
+        </interface>
+    </hal>
+    <hal format="hidl" optional="true">
         <name>vendor.lge.hardware.vss_ims</name>
         <version>1.0</version>
         <interface>

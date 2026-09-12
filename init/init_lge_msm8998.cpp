@@ -40,6 +40,23 @@ using android::base::GetProperty;
 #define PROPERTY_LGE_SWVERSION "ro.vendor.lge.swversion"
 
 /*
+ * The factory software stamp, and the pieces the same screens show next to it.
+ * atd answers the version opcodes straight out of these - without them it logs
+ *
+ *   ro.vendor.lge.factoryversion property is not active or read error
+ *   handle_get_factory_version: get_lge_factory_sw_version fail
+ *
+ * and the SVC and MID Info screens come up with those rows blank. The values
+ * are the ones each stock build carries, so the screens read what the handset
+ * left the factory with. Per SKU for the same reason as the pair above.
+ */
+#define PROPERTY_LGE_FACTORYVERSION "ro.vendor.lge.factoryversion"
+#define PROPERTY_LGE_SWVERSION_SHORT "ro.vendor.lge.swversion_short"
+#define PROPERTY_LGE_SWVERSION_SLTYPE "ro.vendor.lge.swversion_sltype"
+#define PROPERTY_LGE_SWVERSION_REV "ro.vendor.lge.swversion_rev"
+#define PROPERTY_LGE_SWVERSION_VENDOR "ro.vendor.lge.swversion_vendor"
+
+/*
  * The model in each variant is the one the stock build reports, and doubles as
  * the fallback for when the bootloader does not hand us PROPERTY_LGE_MODEL:
  * an unknown SKU is still better described by the identity we are about to
@@ -103,14 +120,28 @@ void init_target_properties()
         property_override(PROPERTY_LGE_OPERATOR, "KDDI");
         property_override(PROPERTY_LGE_COUNTRY, "JP");
         property_override(PROPERTY_LGE_SWVERSION, "LGV3520f");
+        property_override(PROPERTY_LGE_FACTORYVERSION,
+                          "LGV35HL-04-V20f-440-51-MAR-16-2020+0");
+        property_override(PROPERTY_LGE_SWVERSION_SHORT, "V20f");
+        property_override(PROPERTY_LGE_SWVERSION_SLTYPE, "HL");
     } else if (model == "L-01K") {
         variant = joan_dcm_jp_info;
         property_override(PROPERTY_LGE_OPERATOR, "DCM");
         property_override(PROPERTY_LGE_COUNTRY, "JP");
         property_override(PROPERTY_LGE_SWVERSION, "L01K20k");
+        property_override(PROPERTY_LGE_FACTORYVERSION,
+                          "LGL01KAT-00-V20k-DCM-JP-MAR-12-2020+0");
+        property_override(PROPERTY_LGE_SWVERSION_SHORT, "V20k");
+        property_override(PROPERTY_LGE_SWVERSION_SLTYPE, "AT");
     } else {
         /* vendor.prop already names the global pair. */
         variant = joan_global_com_info;
+    }
+
+    /* Both japanese SKUs agree on these two. */
+    if (model == "LGV35" || model == "L-01K") {
+        property_override(PROPERTY_LGE_SWVERSION_REV, "0");
+        property_override(PROPERTY_LGE_SWVERSION_VENDOR, "LG");
     }
 
     /* Only the bootloader knows the SKU; keep the variant model without it. */

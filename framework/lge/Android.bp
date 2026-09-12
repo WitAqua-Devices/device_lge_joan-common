@@ -23,5 +23,13 @@ java_library {
 
     srcs: [
         "src/**/*.java",
+        "src/**/*.aidl",
     ],
+
+    // LGATCMDService extends the Stub this generates, so the interface has to
+    // be visible to the app as well as to the client here - which the boot
+    // classpath does for both.
+    aidl: {
+        local_include_dirs: ["src"],
+    },
 }

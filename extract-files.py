@@ -49,6 +49,39 @@ lib_fixups: lib_fixups_user_type = {
 
 
 blob_fixups: blob_fixups_user_type = {
+    # LG's own HALs, the same way the nfc one is handled: the vendor compat stub
+    # for libhidltransport is enough for the service binary, but not for the
+    # interface libraries - they want symbols it does not carry, and
+    # libhidlbase_shim does.
+    (
+        'vendor/lib64/vendor.lge.hardware.battery@1.0.so',
+        'vendor/lib64/vendor.lge.hardware.charger@1.0.so',
+        'vendor/lib64/vendor.lge.hardware.configstore@1.0.so',
+        'vendor/lib64/vendor.lge.hardware.platform@1.0.so',
+        'vendor/lib64/vendor.lge.hardware.platform@1.1.so',
+        'vendor/lib64/vendor.lge.hardware.securefuse@1.0.so',
+        'vendor/lib64/vendor.lge.hardware.sensortest@1.0.so',
+        'vendor/lib64/vendor.lge.hardware.thermal@1.0.so',
+        'vendor/lib64/vendor.lge.hardware.usb@1.0.so',
+        'vendor/lib64/vendor.lge.hardware.usb.uevent@1.0.so',
+        'vendor/lib/vendor.lge.hardware.lgatcmd@1.0.so',
+        'vendor/lib/hw/vendor.lge.hardware.lgatcmd@1.0-impl.so'
+    ): blob_fixup()
+        .binary_regex_replace(b'libhidltransport.so', b'libhidlbase_shim.so'),
+    # frstd is the factory-reset-protection daemon and is not part of this -
+    # init would log a missing binary for it on every boot. The atd_mid node it
+    # chowns is not in this kernel either, but a failed chown is only a line in
+    # the log, and the rest of the script is what publishes atd's socket.
+    'vendor/etc/init/init.lge.atd.rc': blob_fixup()
+        .regex_replace(
+            r'service vendor\.frstd[\s\S]*?stop vendor\.frstd\n', '')
+        .regex_replace(
+            r'\n    # change permission of /sys/kernel/atd_mid[\s\S]*$', '\n'),
+    # class late_start is only ever started from "on nonencrypted", which does
+    # not run on an FBE device, so stock's own trigger for this is gone and the
+    # service would never start. It has no ordering requirement of its own.
+    'vendor/etc/init/vendor.lge.hardware.sensortest@1.0-service.rc': blob_fixup()
+        .regex_replace('class late_start', 'class hal'),
     # libhidltransport was folded into libhidlbase, and only vendor still gets a
     # compat stub. lgemtvserver runs off product, where there is none.
     'product/bin/lgemtvserver': blob_fixup()

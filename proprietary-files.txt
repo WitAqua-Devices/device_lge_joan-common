@@ -643,6 +643,97 @@ vendor/bin/hw/vendor.lge.hardware.biometrics.fingerprint@2.1-service
 vendor/etc/init/vendor.lge.hardware.biometrics.fingerprint@2.1-service.rc
 vendor/lib64/hw/fingerprint.msm8998.so
 
+# USB - LG's own HAL over the type-C port: what the cc lines and the power
+# delivery objects say, and the phy tuning behind them. The hidden menu's
+# Type-C Checker asks it directly and has no other source, so without this it
+# dies in a static initializer - HwBinder.getService throws NoSuchElementException
+# when the service is not registered, and the app does not catch it.
+#
+# The libraries come out of the dump's /system/lib64 because joan is not
+# treble: there is no separate vendor partition on stock, and /system/vendor
+# is what the vendor prefix means there.
+system/lib64/vendor.lge.hardware.usb@1.0.so:vendor/lib64/vendor.lge.hardware.usb@1.0.so
+system/lib64/vendor.lge.hardware.usb.uevent@1.0.so:vendor/lib64/vendor.lge.hardware.usb.uevent@1.0.so
+vendor/bin/hw/vendor.lge.hardware.usb@1.0-service
+vendor/etc/init/vendor.lge.hardware.usb@1.0-service.rc
+
+# Diagnostic HALs - what the hidden menu's SVC and version screens are written
+# against. Same shape as the usb one above: the interface classes are bundled
+# in HiddenMenu.apk, so what is missing is only the service, and a HIDL lookup
+# that finds nothing throws rather than returning null - the caller's static
+# initialiser dies with it and the activity never opens.
+#
+# Everything they read is LG's own /proc/lge_power, plus the qfprom versions
+# and the eMMC identity, so none of it has an AOSP equivalent to port to.
+#
+# sensortest is the odd one out: its service is a passthrough wrapper that
+# dlopens an -impl.so, so without that (and the calibration library behind it)
+# it exits with "Could not get passthrough implementation" and init restarts
+# it forever.
+# The libraries come from the dump's /system/lib64 for the same reason as the
+# usb ones - joan is not treble on stock.
+system/lib64/vendor.lge.hardware.battery@1.0.so:vendor/lib64/vendor.lge.hardware.battery@1.0.so
+system/lib64/vendor.lge.hardware.charger@1.0.so:vendor/lib64/vendor.lge.hardware.charger@1.0.so
+system/lib64/vendor.lge.hardware.configstore@1.0.so:vendor/lib64/vendor.lge.hardware.configstore@1.0.so
+system/lib64/vendor.lge.hardware.platform@1.0.so:vendor/lib64/vendor.lge.hardware.platform@1.0.so
+system/lib64/vendor.lge.hardware.platform@1.1.so:vendor/lib64/vendor.lge.hardware.platform@1.1.so
+system/lib64/vendor.lge.hardware.securefuse@1.0.so:vendor/lib64/vendor.lge.hardware.securefuse@1.0.so
+system/lib64/vendor.lge.hardware.sensortest@1.0.so:vendor/lib64/vendor.lge.hardware.sensortest@1.0.so
+system/lib64/vendor.lge.hardware.thermal@1.0.so:vendor/lib64/vendor.lge.hardware.thermal@1.0.so
+vendor/bin/hw/vendor.lge.hardware.battery@1.0-service
+vendor/bin/hw/vendor.lge.hardware.charger@1.0-service
+vendor/bin/hw/vendor.lge.hardware.platform@1.1-service
+vendor/bin/hw/vendor.lge.hardware.securefuse@1.0-service
+vendor/bin/hw/vendor.lge.hardware.sensortest@1.0-service
+vendor/bin/hw/vendor.lge.hardware.thermal@1.0-service
+vendor/etc/init/vendor.lge.hardware.battery@1.0-service.rc
+vendor/etc/init/vendor.lge.hardware.charger@1.0-service.rc
+vendor/etc/init/vendor.lge.hardware.platform@1.1-service.rc
+vendor/etc/init/vendor.lge.hardware.securefuse@1.0-service.rc
+vendor/etc/init/vendor.lge.hardware.sensortest@1.0-service.rc
+vendor/etc/init/vendor.lge.hardware.thermal@1.0-service.rc
+vendor/lib64/hw/vendor.lge.hardware.sensortest@1.0-impl.so
+vendor/lib64/libsensor_lge_cal.so
+
+# AT command service - what the SVC screens read their identity values through.
+# The chain is LGATCMDClient (framework/lge) -> LGATCMDService -> the lgatcmd
+# HIDL HAL -> atd, LG's factory daemon, over a unix socket. Nothing short of
+# the whole chain answers, because the values live in the modem and in LG's own
+# fixed area rather than in any property.
+#
+# atd is 32 bit and so is everything under it. /dev/at_mdm0 - the AT channel
+# into the modem - is in this kernel, which is what makes the port possible at
+# all; /sys/kernel/atd_mid is not, and only the MID status node depends on it.
+system/app/LGATCMDService/LGATCMDService.apk
+# The app's lib dir is a symlink into /system/lib64 on stock, so the JNI
+# library is shipped as an ordinary lib and the link is recreated.
+system/lib64/liblgatcmd.so
+system/lib/liblgatcmd.so
+system/lib/vendor.lge.hardware.lgatcmd@1.0.so:vendor/lib/vendor.lge.hardware.lgatcmd@1.0.so
+system/lib/libpatchcodeid.so:vendor/lib/libpatchcodeid.so
+product/lib/libbluedroid_bdt.so:vendor/lib/libbluedroid_bdt.so
+vendor/bin/atd
+vendor/bin/hw/vendor.lge.hardware.lgatcmd@1.0-service
+vendor/etc/init/factory/init.lge.atd.rc:vendor/etc/init/init.lge.atd.rc
+vendor/etc/init/vendor.lge.hardware.lgatcmd@1.0-service.rc
+vendor/lib/hw/vendor.lge.hardware.lgatcmd@1.0-impl.so
+vendor/lib/libDxHdcp.so
+vendor/lib/libatd_common.so
+vendor/lib/libatd_corelib.so
+vendor/lib/libatd_modeminterface.so
+vendor/lib/libcpion.so
+vendor/lib/libdiagd_client_qca.so
+vendor/lib/libdrmfs.so
+vendor/lib/libfrst.so
+vendor/lib/libhdcpsrm.so
+vendor/lib/liblgehdcpek.so
+vendor/lib/liblgftmitem.so
+vendor/lib/liboemcrypto.so
+vendor/lib/libqcci_legacy.so
+vendor/lib/libunified_sysfs_pm.so
+vendor/lib/libvss_dmi_qcci.so
+vendor/lib/libwvoemprov.so
+
 # FM - from phoenix_sprout - phoenix_lgu_kr-user 11 RKQ1.201123.002 8998110220201 release-keys
 system_ext/lib64/fm_helium.so|99140db2b53af1b70577507517540e64aff87d7a
 system_ext/lib64/libfm-hci.so|ae515ef544d20d16c6db16e6af9468e0cc764703
